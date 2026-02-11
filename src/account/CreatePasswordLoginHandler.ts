@@ -63,6 +63,7 @@ export class CreatePasswordLoginHandler
     await this.createPasswordHandler.handleSafe(newInput);
     await this.createPodHandler.handleSafe(newInput);
     const loginInfo = await this.passwordLoginHandler.login(newInput);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { oidcInteraction, ...restInput } = input;
 
     // We pass in input without the OIDC interaction so that it doesn't finisht the interaction, but we can get metadata

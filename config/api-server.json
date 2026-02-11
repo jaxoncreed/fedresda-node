@@ -2,7 +2,7 @@
   "@context": [
     "https://linkedsoftwaredependencies.org/bundles/npm/@solid/community-server/^8.0.0/components/context.jsonld",
     "https://linkedsoftwaredependencies.org/bundles/npm/asynchronous-handlers/^1.0.0/components/context.jsonld",
-    "https://linkedsoftwaredependencies.org/bundles/npm/setmeld-pod/^0.0.0/components/context.jsonld"
+    "https://linkedsoftwaredependencies.org/bundles/npm/fedresda-node/^0.0.0/components/context.jsonld"
   ],
   "@graph": [
     {
@@ -20,14 +20,14 @@
             "@id": "urn:solid-server:default:IdentityProviderHandler"
           },
           "overrideValue": {
-            "@id": "urn:solid-server:default:IntegrationRouteHandler"
+            "@id": "urn:solid-server:default:ApiRouteHandler"
           }
         }
       ]
     },
     {
-      "comment": "Routes all integration related requests to the relevant handlers.",
-      "@id": "urn:solid-server:default:IntegrationRouteHandler",
+      "comment": "Routes all api related requests to the relevant handlers.",
+      "@id": "urn:solid-server:default:ApiRouteHandler",
       "@type": "RouterHandler",
       "baseUrl": {
         "@id": "urn:solid-server:default:variable:baseUrl"
@@ -36,30 +36,22 @@
         "@id": "urn:solid-server:default:TargetExtractor"
       },
       "allowedPathNames": [
-        "^/.integration/api/.*"
+        "^/.api/.*"
       ],
       "handler": {
-        "@id": "urn:solid-server:default:IntegrationHandler"
+        "@id": "urn:solid-server:default:ApiHandler"
       }
     },
     {
-      "comment": "Handles Integration Route",
-      "@id": "urn:solid-server:default:IntegrationHandler",
-      "@type": "IntegrationHandler",
+      "comment": "Handles Api Route",
+      "@id": "urn:solid-server:default:ApiHandler",
+      "@type": "ApiHandler",
       "baseUrl": {
         "@id": "urn:solid-server:default:variable:baseUrl"
       },
       "rootFilePath": {
         "@id": "urn:solid-server:default:variable:rootFilePath"
-      },
-      "gitUri": {
-        "@id": "urn:solid-server:default:variable:gitUri"
       }
-    },
-    {
-      "comment": "The ssh uri for the git server (example.com:2222)",
-      "@id": "urn:solid-server:default:variable:gitUri",
-      "@type": "Variable"
     },
     {
       "@type": "Override",
@@ -81,29 +73,6 @@
               "requiresArg": true,
               "type": "string",
               "describe": "The URI for the git server. (example.com:2222)"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "@type": "Override",
-      "overrideInstance": {
-        "@id": "urn:solid-server-app-setup:default:ShorthandResolver"
-      },
-      "overrideSteps": [
-        {
-          "@type": "OverrideListInsertAt",
-          "overrideParameter": {
-            "@id": "CombinedShorthandResolver:_resolvers"
-          },
-          "overrideTarget": 0,
-          "overrideValue": {
-            "CombinedShorthandResolver:_resolvers_key": "urn:solid-server:default:variable:gitUri",
-            "CombinedShorthandResolver:_resolvers_value": {
-              "@type": "KeyExtractor",
-              "key": "gitUri",
-              "defaultValue": "localhost:2222"
             }
           }
         }

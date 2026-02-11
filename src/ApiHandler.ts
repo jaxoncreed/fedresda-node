@@ -6,14 +6,14 @@ import { createApp } from "./createApp";
 /**
  * Handles any request to a integration route
  */
-export class IntegrationHandler extends HttpHandler {
+export class ApiHandler extends HttpHandler {
   private app: Express;
   protected readonly logger = getLoggerFor(this);
 
-  constructor(baseUrl: string, rootFilePath: string, gitUri: string) {
+  constructor(baseUrl: string, rootFilePath: string) {
     super();
 
-    this.app = createApp(baseUrl, rootFilePath, gitUri);
+    this.app = createApp(baseUrl, rootFilePath);
   }
 
   async handle(input: HttpHandlerInput): Promise<void> {

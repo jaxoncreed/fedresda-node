@@ -2,7 +2,7 @@
   "@context": [
     "https://linkedsoftwaredependencies.org/bundles/npm/@solid/community-server/^8.0.0/components/context.jsonld",
     "https://linkedsoftwaredependencies.org/bundles/npm/asynchronous-handlers/^1.0.0/components/context.jsonld",
-    "https://linkedsoftwaredependencies.org/bundles/npm/setmeld-pod/^0.0.0/components/context.jsonld"
+    "https://linkedsoftwaredependencies.org/bundles/npm/fedresda-node/^0.0.0/components/context.jsonld"
   ],
   "import": [
     "css:config/app/init/static-root.json",
@@ -36,8 +36,8 @@
     "css:config/util/variables/default.json",
     "css:config/storage/backend/data-accessors/file.json",
     "css:config/storage/backend/data-accessors/sparql-endpoint.json",
-    "iss:config/integration-server.json",
-    "iss:config/create-login.json"
+    "fss:config/api-server.json",
+    "fss:config/create-login.json"
   ],
   "@graph": [
     {
