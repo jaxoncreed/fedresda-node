@@ -24,9 +24,11 @@ export const HomeView: FunctionComponent = () => {
       <View style={styles.content}>
         {/* Large Title */}
         <Text style={styles.title}>
-          HODA Digital
+          FedResDa
         </Text>
-
+        <Text>
+          Federated Research Data
+        </Text>
         {/* Login Button */}
         <Button
           text="Log in with your Pod"

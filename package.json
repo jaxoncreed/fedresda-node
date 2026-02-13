@@ -11,7 +11,7 @@
     "dev": "concurrently -k -n server,ui \"npm:dev:server\" \"npm:dev:ui\"",
     "dev:server": "nodemon --watch src --watch config --ext ts,json --exec \"npm run build:server && npm run start:server\"",
     "dev:ui": "cd ui && npm run build:server:watch",
-    "start:server": "node ./node_modules/@solid/community-server/bin/server.js -c ./config/config.json -m ./ -f ./data -g localhost:2229 -s http://localhost:4000/bigdata/sparql",
+    "start:server": "node ./node_modules/@solid/community-server/bin/server.js -c ./config/config.json -m ./ -f ./data -g localhost:2229 -s http://localhost:8889/bigdata/sparql",
     "build:server": "npm run build:server:ts && npm run build:server:components",
     "build:server:ts": "tsc",
     "build:server:components": "componentsjs-generator -s src -c dist/components -r fss -i .componentsignore",

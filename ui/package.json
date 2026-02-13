@@ -20,7 +20,7 @@
   "dependencies": {
     "@ldo/ldo": "^1.0.0-alpha.32",
     "expo": "^53.0.9",
-    "linked-data-browser": "^0.0.8-alpha.2",
+    "linked-data-browser": "^0.0.8-alpha.5",
     "lucide-react-native": "^0.511.0",
     "nativewind": "^4.1.23",
     "react": "19.0.0",
