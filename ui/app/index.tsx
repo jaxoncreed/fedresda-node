@@ -6,6 +6,7 @@ import "../global.css";
 import { HomeConfig } from 'resourceViews/home/HomeConfig';
 import { ContainerResourceView, DataBrowser, ProfileResourceView, RawCodeResourceView, Text, RdfResourceCreator } from 'linked-data-browser';
 import { NemalineCsvResourceCreator } from '../resourceCreators/NemalineCsvResourceCreator';
+import { NemalineConfig } from '../resourceViews/nemaline/NemalineConfig';
 
 
 export function Screen() {
@@ -14,7 +15,7 @@ export function Screen() {
     <SafeAreaProvider>
       <StatusBar />
       <DataBrowser
-        resourceViews={[HomeConfig, ProfileResourceView, ContainerResourceView, RawCodeResourceView]}
+        resourceViews={[HomeConfig, ProfileResourceView, ContainerResourceView, NemalineConfig, RawCodeResourceView]}
         resourceCreators={[RdfResourceCreator, NemalineCsvResourceCreator]}
         mode={'server-ui'}
         renderLogo={() => <Text>Logo</Text>}

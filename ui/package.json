@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@ldo/ldo": "^1.0.0-alpha.32",
+    "@ldo/solid-react": "^1.0.0-alpha.32",
     "expo": "^53.0.9",
     "linked-data-browser": "^0.0.8-alpha.5",
     "lucide-react-native": "^0.511.0",

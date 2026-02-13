@@ -78,6 +78,7 @@ export const nemaline_myopathy_gistContext: LdoJsonldContext = {
       hasMagnitude: {
         "@id": "https://w3id.org/semanticarts/ns/ontology/gist/hasMagnitude",
         "@type": "@id",
+        "@isCollection": true,
       },
     },
   },
