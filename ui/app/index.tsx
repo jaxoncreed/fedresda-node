@@ -4,7 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'react-native';
 import "../global.css";
 import { HomeConfig } from 'resourceViews/home/HomeConfig';
-import { ContainerResourceView, DataBrowser, ProfileResourceView, RawCodeResourceView, Text, RdfResourceCreator } from 'linked-data-browser';
+import { ContainerResourceView, DataBrowser, ProfileResourceView, RawCodeResourceView, Text, RdfResourceCreator, ContainerResourceCreator } from 'linked-data-browser';
 import { NemalineCsvResourceCreator } from '../resourceCreators/NemalineCsvResourceCreator';
 import { NemalineConfig } from '../resourceViews/nemaline/NemalineConfig';
 
@@ -16,7 +16,7 @@ export function Screen() {
       <StatusBar />
       <DataBrowser
         resourceViews={[HomeConfig, ProfileResourceView, ContainerResourceView, NemalineConfig, RawCodeResourceView]}
-        resourceCreators={[RdfResourceCreator, NemalineCsvResourceCreator]}
+        resourceCreators={[RdfResourceCreator, ContainerResourceCreator, NemalineCsvResourceCreator]}
         mode={'server-ui'}
         renderLogo={() => <Text>Logo</Text>}
       />

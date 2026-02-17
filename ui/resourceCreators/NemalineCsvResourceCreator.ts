@@ -1,9 +1,10 @@
-import {
-  createLdoDataset,
-  toTurtle,
-  set,
-} from '@ldo/ldo';
+import { set } from '@ldo/ldo';
 import { SolidContainer, SolidLeafSlug } from '@ldo/connected-solid';
+import type { SolidConnectedPlugin } from '@ldo/connected-solid';
+import type {
+  IConnectedLdoDataset,
+  ConnectedLdoTransactionDataset,
+} from '@ldo/connected';
 import { Stethoscope } from 'lucide-react-native';
 import { ResourceCreatorConfig } from 'linked-data-browser';
 import { AssessmentEventShapeType } from '../.ldo/nemaline_myopathy_gist.shapeTypes';
@@ -20,6 +21,11 @@ import type {
   MFMSubScoreMagnitude,
   TimeOffsetMagnitude,
 } from '../.ldo/nemaline_myopathy_gist.typings';
+
+/** Container with context exposed so we can get the dataset for createData/commitToRemote. */
+type ContainerWithContext = SolidContainer & {
+  context: { dataset: IConnectedLdoDataset<SolidConnectedPlugin[]> };
+};
 
 /** Basename of a path or file name (handles forward slashes). */
 function basename(path: string): string {
@@ -201,35 +207,39 @@ export const NemalineCsvResourceCreator: ResourceCreatorConfig = {
     const slug = `${baseName}.ttl` as SolidLeafSlug;
     const baseUri = `${container.uri}${slug}`;
 
-    const ldoDataset = createLdoDataset();
-    let lastEvent: AssessmentEvent | undefined;
-
-    for (const row of dataRows) {
-      const eventData = rowToAssessmentEvent(row, baseUri);
-      lastEvent = ldoDataset
-        .usingType(AssessmentEventShapeType)
-        .fromJson(eventData as AssessmentEvent);
-    }
-
-    if (!lastEvent) {
+    if (dataRows.length === 0) {
       createUtils.toast('No valid data rows to convert.', { title: 'Error' });
       return;
     }
 
-    createUtils.loadingMessage(`Uploading ${slug}…`);
-    const turtle = await toTurtle(lastEvent);
-    const blob = new Blob([turtle], { type: 'text/turtle' });
+    createUtils.loadingMessage(`Creating ${slug}…`);
+    const createResult = await container.createChildAndOverwrite(slug);
+    if (createResult.isError) {
+      createUtils.toast(createResult.message, { title: 'Error' });
+      return;
+    }
+    const childResource = createResult.resource;
 
-    const result = await container.uploadChildAndOverwrite(
-      slug,
-      blob,
-      'text/turtle',
-    );
+    const dataset = (container as ContainerWithContext).context.dataset;
+    const transaction = dataset.startTransaction();
 
-    if (result.isError) {
-      createUtils.toast(result.message, { title: 'Error' });
+    for (const row of dataRows) {
+      const eventData = rowToAssessmentEvent(row, baseUri);
+      transaction
+        .usingType(AssessmentEventShapeType)
+        .write(childResource.uri)
+        .fromJson(eventData as AssessmentEvent);
+    }
+
+    createUtils.loadingMessage(`Writing content to ${slug}…`);
+    const commitResult = await (
+      transaction as ConnectedLdoTransactionDataset<SolidConnectedPlugin[]>
+    ).commitToRemote();
+
+    if (commitResult.isError) {
+      createUtils.toast(commitResult.message, { title: 'Error' });
     } else {
-      createUtils.toast(`${slug} uploaded (${dataRows.length} assessments).`);
+      createUtils.toast(`${slug} created (${dataRows.length} assessments).`);
     }
   },
 };
