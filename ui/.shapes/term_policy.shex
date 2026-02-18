@@ -1,0 +1,44 @@
+PREFIX gist: <https://w3id.org/semanticarts/ns/ontology/gist/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX ex: <http://example.org/analytics/>
+
+# The top-level Access Control object
+ex:AccessControlShape {
+  a [gist:Permission] ;
+  
+  # The target: Can be a Dataset (Collection) or a Field (Content)
+  gist:isAbout IRI ;
+  
+  # The allowed statistical measure
+  gist:allows @ex:MeasureSpecificationShape + ;
+}
+
+# The definition of the Statistical Measure
+ex:MeasureSpecificationShape {
+  a [gist:Specification] ;
+  
+  # 1. THE TYPE: Must be categorized (e.g., KaplanMeier, Mean)
+  gist:isCategorizedBy IRI ;
+  
+  # 2. CONFIGURATION: Optional numeric settings (Resolution, BinWidth)
+  # Modeled as Magnitudes with Aspects
+  gist:hasMagnitude @ex:ConfigurationMagnitudeShape * ;
+  
+  # 3. INPUT ROLES: Optional specific field assignments (TimeField, EventField)
+  # Modeled as Requirements on specific fields
+  gist:requires @ex:InputRequirementShape * ;
+}
+
+# Validating a configuration setting (e.g., Resolution = 5)
+ex:ConfigurationMagnitudeShape {
+  a [gist:Magnitude] ;
+  gist:hasAspect IRI ;          # e.g., ex:Resolution
+  gist:numericValue xsd:decimal ;
+}
+
+# Validating variable mapping (e.g., Age is the TimeVariable)
+ex:InputRequirementShape {
+  a [gist:Requirement] ;
+  gist:isAbout IRI ;       # The field being used
+  gist:isCategorizedBy IRI ;           # e.g., ex:TimeVariable
+}

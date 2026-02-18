@@ -2,16 +2,24 @@ import express, { NextFunction, Request, Response } from "express";
 import { createValidateWebId } from "./validateWebId";
 import { HttpError } from "./HttpError";
 import { getGlobals } from "../globals";
+import { createAggregateRouter } from "./aggregate/aggregateRouter";
 
 export function createApiRouter() {
   const apiRouter = express.Router();
 
   /**
    * ===========================================================================
-   * AUTHENTICATED FUNCTIONS
+   * AUTHENTICATED FUNCTIONS (including aggregate API)
    * ===========================================================================
    */
   apiRouter.use(createValidateWebId());
+
+  /**
+   * ===========================================================================
+   * AGGREGATE API (term policy + aggregate search)
+   * ===========================================================================
+   */
+  apiRouter.use("/aggregate", createAggregateRouter());
 
   /**
    * ===========================================================================

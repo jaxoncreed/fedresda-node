@@ -4,6 +4,7 @@ import { setGlobals } from "./globals";
 
 export function createApp(base: string, rootFilePath: string): Express {
   const app = express();
+  app.use(express.json());
 
   setGlobals({
     baseUrl: base,
