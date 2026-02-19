@@ -2,120 +2,134 @@ PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX gist: <https://w3id.org/semanticarts/ns/ontology/gist/>
 PREFIX ox: <https://paediatrics.ox.ac.uk/terms/>
+PREFIX nm: <https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/>
 
 # ---------------------------------------------------------
-# Shape: Assessment Event (The Row)
-# Represents the "Snapshot" of the evaluation.
+# Shape: Person
+# Represents the clinical subject. Static demographics and aggregate
+# data are attached directly to this node.
 # ---------------------------------------------------------
-ox:AssessmentEventShape {
-    a [gist:Determination] ;
-
-    # Identification (The 'Id' column)
-    gist:isIdentifiedBy @ox:IDShape ;
-
-    # The Subject being evaluated
-    gist:hasParticipant @ox:SubjectShape ;
-
-    # The Result (Total MFM Score)
-    # Modeled as a produced content/value
-    gist:produces @ox:TotalScoreResult ;
-
-    # The 5 sub-tasks (V1 - V5)
-    # Modeled as parts of the main event
-    gist:hasPart @ox:TaskPerformanceShape {5} ;
-    
-    # "Below average" flag
-    # Modeled as a tag or category if present
-    gist:isCategorizedBy [ox:BelowAverage] ? ;
-}
-
-# ---------------------------------------------------------
-# Shape: Subject (The Person)
-# Derived from the row's demographic columns
-# ---------------------------------------------------------
-ox:SubjectShape {
+ox:PersonShape {
     a [gist:Person] ;
 
-    # Demographics
-    gist:isCategorizedBy [ox:C1 ox:C2 ox:C3] ;
-    gist:isCategorizedBy [ox:variant1 ox:variant2 ox:variant3] ;
-    gist:isCategorizedBy [ox:Left ox:Right] ? ;
+    # --- Identity ---
+    gist:isIdentifiedBy @ox:IDShape ;
 
-    # Ambulation Status (Baseline_loA_status)
-    gist:isCategorizedBy [ox:Ambulant ox:Non-Ambulant] ;
+    # --- Demographics (Study Specific) ---
+    # Maps internal codes to semantic categories defined in the NM namespace.
+    gist:isCategorizedBy [nm:Cluster_1 nm:Cluster_2 nm:Cluster_3] ;
+    gist:isCategorizedBy [nm:GeneticGroup_Variant1 nm:GeneticGroup_Variant2 nm:GeneticGroup_Variant3] ;
+    
+    # --- Demographics (General) ---
+    gist:isCategorizedBy [ox:LeftHanded ox:RightHanded] ? ;
 
-    # Loss of Ambulation Age (LoA Age)
-    # Only exists if applicable (Non-Ambulant)
+    # --- Clinical Status ---
+    # Captures the ambulation status at the start of the study.
+    gist:isCategorizedBy [nm:Status_Ambulant nm:Status_NonAmbulant] ;
+
+    # Indicates if the patient's overall performance is flagged as below the cohort average.
+    gist:isCategorizedBy [nm:Performance_BelowAverage] ? ;
+
+    # --- Static Magnitudes ---
+    # Age at the time of baseline assessment.
+    gist:hasMagnitude @ox:BaselineAgeMagnitude ;
+
+    # Age at which ambulation was lost (if applicable).
     gist:hasMagnitude @ox:LoAAgeMagnitude ? ;
 
-    # Age at Assessment (Baseline_Age)
-    # Note: Age is dynamic, but recorded here as a snapshot magnitude
-    gist:hasMagnitude @ox:AgeAtAssessmentMagnitude ;
+    # The sum of MFM scores across all visits recorded in this dataset.
+    gist:hasMagnitude @ox:TotalMFMMagnitude ? ;
+
+    # --- Longitudinal Assessments ---
+    # Links the person to specific assessment events.
+    # Modeled as an inverse relationship: The Person "participated in" these events.
+    ^gist:hasParticipant @nm:MFMAssessmentEventShape * ;
 }
 
 # ---------------------------------------------------------
-# Shape: Task Performance (V1-V5 Columns)
-# Pairs a Time (Time_Vx) with a Score (MFM_Vx)
+# Shape: MFM Assessment Event
+# Represents a discrete clinical encounter where Motor Function Measure (MFM)
+# data was collected. Corresponds to V1-V5 columns.
 # ---------------------------------------------------------
-ox:TaskPerformanceShape {
-    a [gist:Event] ; # A sub-event or task
+nm:MFMAssessmentEventShape {
+    # Modeled as a gist:Determination because the event calculates/determines a value.
+    a [gist:Determination] ;
 
-    # The Score for this specific task (MFM_V1...)
-    gist:produces @ox:TaskPerformanceProduces ;
+    # Categorizes the event so generic systems recognize the assessment type.
+    gist:isCategorizedBy [nm:AssessmentType_MFM32] ;
 
-    # The Time offset/duration for this task (Time_V1...)
-    gist:hasMagnitude @ox:TimeOffsetMagnitude ;
+    # Captures the timing of the visit relative to the study baseline.
+    gist:hasMagnitude @nm:TimeFromBaselineMagnitude ;
+
+    # Links the event to the subject being assessed.
+    gist:hasParticipant @ox:PersonShape ;
+
+    # The event produces a content node (the record) which holds the actual score.
+    gist:produces @nm:AssessmentResult ;
 }
 
-ox:TaskPerformanceProduces {
+# ---------------------------------------------------------
+# Shape: Assessment Result
+# The informational content produced by the assessment event.
+# ---------------------------------------------------------
+nm:AssessmentResult {
     a [gist:Content] ;
-    gist:hasMagnitude @ox:MFMSubScoreMagnitude ;
+    
+    # Explicitly states the subject matter of this record.
+    gist:isAbout [nm:Concept_MotorFunction] ;
+    
+    # The actual score value derived from the assessment.
+    gist:hasMagnitude @nm:MFMScoreMagnitude ;
 }
 
 # ---------------------------------------------------------
-# Shape: Total Score Result
-# Represents 'total MFM' column
+# Magnitudes
+# Gist requires numeric values to be wrapped in a Magnitude object
+# that defines the 'Aspect' (what is measured) and the Unit.
 # ---------------------------------------------------------
-ox:TotalScoreResult {
-    a [gist:Content] ;
-    gist:hasMagnitude @ox:TotalMFMMagnitude ;
+
+# Represents the time elapsed since study enrollment (e.g., 0.5 years).
+nm:TimeFromBaselineMagnitude {
+    a [gist:Magnitude] ;
+    gist:hasAspect [nm:Aspect_DurationSinceStudyEnrollment] ;
+    gist:hasUnitOfMeasure [gist:Unit_Year] ;
+    gist:numericValue xsd:decimal ;
 }
 
+# Represents the score achieved on the MFM-32 assessment during a specific visit.
+nm:MFMScoreMagnitude {
+    a [gist:Magnitude] ;
+    gist:hasAspect [nm:Aspect_MFM32_VisitScore] ;
+    gist:numericValue xsd:integer ;
+}
+
+# Represents the aggregate MFM score for the patient across the dataset.
 ox:TotalMFMMagnitude {
     a [gist:Magnitude] ;
-    gist:hasAspect [ox:Aspect_TotalMFM] ;
+    gist:hasAspect [nm:Aspect_MFM32_AggregateScore] ;
+    gist:numericValue xsd:integer ;
+}
+
+# Represents the patient's age at the start of the study.
+ox:BaselineAgeMagnitude {
+    a [gist:Magnitude] ;
+    gist:hasAspect [gist:Aspect_Age] ;
+    gist:hasUnitOfMeasure [gist:Unit_Year] ;
+    gist:numericValue xsd:decimal ;
+}
+
+# Represents the age at which the patient lost the ability to ambulate.
+ox:LoAAgeMagnitude {
+    a [gist:Magnitude] ;
+    gist:hasAspect [nm:Aspect_AgeAtLossOfAmbulation] ;
+    gist:hasUnitOfMeasure [gist:Unit_Year] ;
     gist:numericValue xsd:decimal ;
 }
 
 # ---------------------------------------------------------
-# Helper Shapes (Magnitudes & Categories)
+# Identity
 # ---------------------------------------------------------
-
 ox:IDShape {
     a [gist:ID] ;
     gist:uniqueText xsd:string ;
-}
-
-ox:AgeAtAssessmentMagnitude {
-    a [gist:Magnitude] ;
-    gist:hasAspect [ox:Aspect_Age] ;
-    gist:numericValue xsd:decimal ;
-}
-
-ox:LoAAgeMagnitude {
-    a [gist:Magnitude] ;
-    gist:hasAspect [ox:Aspect_AgeOfOnset] ;
-    gist:numericValue xsd:decimal ;
-}
-
-ox:MFMSubScoreMagnitude {
-    a [gist:Magnitude] ;
-    gist:hasAspect [ox:Aspect_MFM_SubScore] ;
-    gist:numericValue xsd:decimal ;
-}
-
-ox:TimeOffsetMagnitude {
-    a [gist:Magnitude] ;
-    gist:hasAspect [ox:Aspect_TimeOffset] ;
-    gist:numericValue xsd:decimal ;
 }

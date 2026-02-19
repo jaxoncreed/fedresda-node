@@ -7,102 +7,119 @@ import { LdoJsonldContext, LdSet } from "@ldo/ldo";
  */
 
 /**
- * AssessmentEvent Type
+ * Person Type
  */
-export interface AssessmentEvent {
-  "@id"?: string;
-  "@context"?: LdoJsonldContext;
-  type: LdSet<{
-    "@id": "Determination";
-  }>;
-  isIdentifiedBy: ID;
-  hasParticipant: Subject;
-  produces: TotalScoreResult;
-  hasPart: LdSet<TaskPerformance>;
-  isCategorizedBy?: {
-    "@id": "BelowAverage";
-  };
-}
-
-/**
- * Subject Type
- */
-export interface Subject {
+export interface Person {
   "@id"?: string;
   "@context"?: LdoJsonldContext;
   type: LdSet<{
     "@id": "Person";
   }>;
+  isIdentifiedBy: ID;
   isCategorizedBy?: LdSet<
     | {
-        "@id": "C1";
+        "@id": "Cluster1";
       }
     | {
-        "@id": "C2";
+        "@id": "Cluster2";
       }
     | {
-        "@id": "C3";
+        "@id": "Cluster3";
       }
     | {
-        "@id": "variant1";
+        "@id": "GeneticGroupVariant1";
       }
     | {
-        "@id": "variant2";
+        "@id": "GeneticGroupVariant2";
       }
     | {
-        "@id": "variant3";
+        "@id": "GeneticGroupVariant3";
       }
     | {
-        "@id": "Left";
+        "@id": "LeftHanded";
       }
     | {
-        "@id": "Right";
+        "@id": "RightHanded";
       }
     | {
-        "@id": "Ambulant";
+        "@id": "StatusAmbulant";
       }
     | {
-        "@id": "NonAmbulant";
+        "@id": "StatusNonAmbulant";
+      }
+    | {
+        "@id": "PerformanceBelowAverage";
       }
   >;
-  hasMagnitude?: LdSet<LoAAgeMagnitude | AgeAtAssessmentMagnitude>;
+  hasMagnitude?: LdSet<
+    BaselineAgeMagnitude | LoAAgeMagnitude | TotalMFMMagnitude
+  >;
+  hasParticipant?: LdSet<MFMAssessmentEvent>;
 }
 
 /**
- * TaskPerformance Type
+ * MFMAssessmentEvent Type
  */
-export interface TaskPerformance {
+export interface MFMAssessmentEvent {
   "@id"?: string;
   "@context"?: LdoJsonldContext;
   type: LdSet<{
-    "@id": "Event";
+    "@id": "Determination";
   }>;
-  produces: TaskPerformanceProduces;
-  hasMagnitude: TimeOffsetMagnitude;
+  isCategorizedBy: {
+    "@id": "AssessmentTypeMFM32";
+  };
+  hasMagnitude: TimeFromBaselineMagnitude;
+  hasParticipant: Person;
+  produces: AssessmentResult;
 }
 
 /**
- * TaskPerformanceProduces Type
+ * AssessmentResult Type
  */
-export interface TaskPerformanceProduces {
-  "@id"?: string;
-  "@context"?: LdoJsonldContext;
-  type: LdSet<{
-    "@id": "Content";
-  }>;
-  hasMagnitude: MFMSubScoreMagnitude;
-}
-
-/**
- * TotalScoreResult Type
- */
-export interface TotalScoreResult {
+export interface AssessmentResult {
   "@id"?: string;
   "@context"?: LdoJsonldContext;
   type: LdSet<{
     "@id": "Content";
   }>;
-  hasMagnitude: TotalMFMMagnitude;
+  isAbout: {
+    "@id": "ConceptMotorFunction";
+  };
+  hasMagnitude: MFMScoreMagnitude;
+}
+
+/**
+ * TimeFromBaselineMagnitude Type
+ */
+export interface TimeFromBaselineMagnitude {
+  "@id"?: string;
+  "@context"?: LdoJsonldContext;
+  type: LdSet<{
+    "@id": "Magnitude";
+  }>;
+  hasAspect: {
+    "@id": "AspectDurationSinceStudyEnrollment";
+  };
+  hasUnitOfMeasure: {
+    "@id": "UnitYear";
+  };
+  numericValue: number;
+}
+
+/**
+ * MFMScoreMagnitude Type
+ */
+export interface MFMScoreMagnitude {
+  "@id"?: string;
+  "@context"?: LdoJsonldContext;
+  type: LdSet<{
+    "@id": "Magnitude";
+  }>;
+  hasAspect: {
+    "@id": "AspectMFM32VisitScore";
+  };
+  numericValue: number;
 }
 
 /**
@@ -115,27 +132,15 @@ export interface TotalMFMMagnitude {
     "@id": "Magnitude";
   }>;
   hasAspect: {
-    "@id": "AspectTotalMFM";
+    "@id": "AspectMFM32AggregateScore";
   };
   numericValue: number;
 }
 
 /**
- * ID Type
+ * BaselineAgeMagnitude Type
  */
-export interface ID {
-  "@id"?: string;
-  "@context"?: LdoJsonldContext;
-  type: LdSet<{
-    "@id": "ID";
-  }>;
-  uniqueText: string;
-}
-
-/**
- * AgeAtAssessmentMagnitude Type
- */
-export interface AgeAtAssessmentMagnitude {
+export interface BaselineAgeMagnitude {
   "@id"?: string;
   "@context"?: LdoJsonldContext;
   type: LdSet<{
@@ -143,6 +148,9 @@ export interface AgeAtAssessmentMagnitude {
   }>;
   hasAspect: {
     "@id": "AspectAge";
+  };
+  hasUnitOfMeasure: {
+    "@id": "UnitYear";
   };
   numericValue: number;
 }
@@ -157,37 +165,22 @@ export interface LoAAgeMagnitude {
     "@id": "Magnitude";
   }>;
   hasAspect: {
-    "@id": "AspectAgeOfOnset";
+    "@id": "AspectAgeAtLossOfAmbulation";
+  };
+  hasUnitOfMeasure: {
+    "@id": "UnitYear";
   };
   numericValue: number;
 }
 
 /**
- * MFMSubScoreMagnitude Type
+ * ID Type
  */
-export interface MFMSubScoreMagnitude {
+export interface ID {
   "@id"?: string;
   "@context"?: LdoJsonldContext;
   type: LdSet<{
-    "@id": "Magnitude";
+    "@id": "ID";
   }>;
-  hasAspect: {
-    "@id": "AspectMFMSubScore";
-  };
-  numericValue: number;
-}
-
-/**
- * TimeOffsetMagnitude Type
- */
-export interface TimeOffsetMagnitude {
-  "@id"?: string;
-  "@context"?: LdoJsonldContext;
-  type: LdSet<{
-    "@id": "Magnitude";
-  }>;
-  hasAspect: {
-    "@id": "AspectTimeOffset";
-  };
-  numericValue: number;
+  uniqueText: string;
 }

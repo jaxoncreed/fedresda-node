@@ -2,17 +2,15 @@ import { ShapeType } from "@ldo/ldo";
 import { nemaline_myopathy_gistSchema } from "./nemaline_myopathy_gist.schema";
 import { nemaline_myopathy_gistContext } from "./nemaline_myopathy_gist.context";
 import {
-  AssessmentEvent,
-  Subject,
-  TaskPerformance,
-  TaskPerformanceProduces,
-  TotalScoreResult,
+  Person,
+  MFMAssessmentEvent,
+  AssessmentResult,
+  TimeFromBaselineMagnitude,
+  MFMScoreMagnitude,
   TotalMFMMagnitude,
-  ID,
-  AgeAtAssessmentMagnitude,
+  BaselineAgeMagnitude,
   LoAAgeMagnitude,
-  MFMSubScoreMagnitude,
-  TimeOffsetMagnitude,
+  ID,
 } from "./nemaline_myopathy_gist.typings";
 
 /**
@@ -22,48 +20,52 @@ import {
  */
 
 /**
- * AssessmentEvent ShapeType
+ * Person ShapeType
  */
-export const AssessmentEventShapeType: ShapeType<AssessmentEvent> = {
+export const PersonShapeType: ShapeType<Person> = {
   schema: nemaline_myopathy_gistSchema,
-  shape: "https://paediatrics.ox.ac.uk/terms/AssessmentEventShape",
+  shape: "https://paediatrics.ox.ac.uk/terms/PersonShape",
   context: nemaline_myopathy_gistContext,
 };
 
 /**
- * Subject ShapeType
+ * MFMAssessmentEvent ShapeType
  */
-export const SubjectShapeType: ShapeType<Subject> = {
+export const MFMAssessmentEventShapeType: ShapeType<MFMAssessmentEvent> = {
   schema: nemaline_myopathy_gistSchema,
-  shape: "https://paediatrics.ox.ac.uk/terms/SubjectShape",
+  shape:
+    "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/MFMAssessmentEventShape",
   context: nemaline_myopathy_gistContext,
 };
 
 /**
- * TaskPerformance ShapeType
+ * AssessmentResult ShapeType
  */
-export const TaskPerformanceShapeType: ShapeType<TaskPerformance> = {
+export const AssessmentResultShapeType: ShapeType<AssessmentResult> = {
   schema: nemaline_myopathy_gistSchema,
-  shape: "https://paediatrics.ox.ac.uk/terms/TaskPerformanceShape",
+  shape:
+    "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/AssessmentResult",
   context: nemaline_myopathy_gistContext,
 };
 
 /**
- * TaskPerformanceProduces ShapeType
+ * TimeFromBaselineMagnitude ShapeType
  */
-export const TaskPerformanceProducesShapeType: ShapeType<TaskPerformanceProduces> =
+export const TimeFromBaselineMagnitudeShapeType: ShapeType<TimeFromBaselineMagnitude> =
   {
     schema: nemaline_myopathy_gistSchema,
-    shape: "https://paediatrics.ox.ac.uk/terms/TaskPerformanceProduces",
+    shape:
+      "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/TimeFromBaselineMagnitude",
     context: nemaline_myopathy_gistContext,
   };
 
 /**
- * TotalScoreResult ShapeType
+ * MFMScoreMagnitude ShapeType
  */
-export const TotalScoreResultShapeType: ShapeType<TotalScoreResult> = {
+export const MFMScoreMagnitudeShapeType: ShapeType<MFMScoreMagnitude> = {
   schema: nemaline_myopathy_gistSchema,
-  shape: "https://paediatrics.ox.ac.uk/terms/TotalScoreResult",
+  shape:
+    "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/MFMScoreMagnitude",
   context: nemaline_myopathy_gistContext,
 };
 
@@ -77,23 +79,13 @@ export const TotalMFMMagnitudeShapeType: ShapeType<TotalMFMMagnitude> = {
 };
 
 /**
- * ID ShapeType
+ * BaselineAgeMagnitude ShapeType
  */
-export const IDShapeType: ShapeType<ID> = {
+export const BaselineAgeMagnitudeShapeType: ShapeType<BaselineAgeMagnitude> = {
   schema: nemaline_myopathy_gistSchema,
-  shape: "https://paediatrics.ox.ac.uk/terms/IDShape",
+  shape: "https://paediatrics.ox.ac.uk/terms/BaselineAgeMagnitude",
   context: nemaline_myopathy_gistContext,
 };
-
-/**
- * AgeAtAssessmentMagnitude ShapeType
- */
-export const AgeAtAssessmentMagnitudeShapeType: ShapeType<AgeAtAssessmentMagnitude> =
-  {
-    schema: nemaline_myopathy_gistSchema,
-    shape: "https://paediatrics.ox.ac.uk/terms/AgeAtAssessmentMagnitude",
-    context: nemaline_myopathy_gistContext,
-  };
 
 /**
  * LoAAgeMagnitude ShapeType
@@ -105,19 +97,10 @@ export const LoAAgeMagnitudeShapeType: ShapeType<LoAAgeMagnitude> = {
 };
 
 /**
- * MFMSubScoreMagnitude ShapeType
+ * ID ShapeType
  */
-export const MFMSubScoreMagnitudeShapeType: ShapeType<MFMSubScoreMagnitude> = {
+export const IDShapeType: ShapeType<ID> = {
   schema: nemaline_myopathy_gistSchema,
-  shape: "https://paediatrics.ox.ac.uk/terms/MFMSubScoreMagnitude",
-  context: nemaline_myopathy_gistContext,
-};
-
-/**
- * TimeOffsetMagnitude ShapeType
- */
-export const TimeOffsetMagnitudeShapeType: ShapeType<TimeOffsetMagnitude> = {
-  schema: nemaline_myopathy_gistSchema,
-  shape: "https://paediatrics.ox.ac.uk/terms/TimeOffsetMagnitude",
+  shape: "https://paediatrics.ox.ac.uk/terms/IDShape",
   context: nemaline_myopathy_gistContext,
 };

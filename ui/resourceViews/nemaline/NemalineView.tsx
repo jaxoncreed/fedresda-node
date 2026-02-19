@@ -13,11 +13,16 @@ import {
   useViewContext,
 } from 'linked-data-browser';
 import { useResource, useMatchSubject } from '@ldo/solid-react';
-import { AssessmentEventShapeType } from '../../.ldo/nemaline_myopathy_gist.shapeTypes';
-import type { AssessmentEvent, Subject } from '../../.ldo/nemaline_myopathy_gist.typings';
+import { getDataset } from '@ldo/ldo';
+import { namedNode } from '@ldo/rdf-utils';
+import { PersonShapeType } from '../../.ldo/nemaline_myopathy_gist.shapeTypes';
+import type { Person } from '../../.ldo/nemaline_myopathy_gist.typings';
 
 const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
-const GIST_DETERMINATION = 'https://w3id.org/semanticarts/ns/ontology/gist/Determination';
+const GIST_PERSON = 'https://w3id.org/semanticarts/ns/ontology/gist/Person';
+const HAS_MAGNITUDE = 'https://w3id.org/semanticarts/ns/ontology/gist/hasMagnitude';
+const HAS_ASPECT = 'https://w3id.org/semanticarts/ns/ontology/gist/hasAspect';
+const NUMERIC_VALUE = 'https://w3id.org/semanticarts/ns/ontology/gist/numericValue';
 
 /** Get the aspect @id from a magnitude (hasAspect can be a single object or an LdSet). */
 function getAspectId(m: unknown): string | undefined {
@@ -29,22 +34,18 @@ function getAspectId(m: unknown): string | undefined {
   return (first as { '@id'?: string })?.['@id'];
 }
 
-/** Extract a single magnitude value by aspect from Subject.hasMagnitude. */
+/** Extract a magnitude value by aspect from Person.hasMagnitude. */
 function getMagnitude(
-  subject: Subject,
-  aspectId: 'AspectAge' | 'AspectAgeOfOnset',
+  person: Person,
+  aspectMatch: (aspect: string) => boolean,
 ): number | undefined {
-  const mags = subject.hasMagnitude;
+  const mags = person.hasMagnitude;
   if (!mags) return undefined;
-  const arr = mags.toArray?.() ?? (mags as Iterable<unknown>[]);
-  const matches = (aspect: string | undefined): boolean => {
-    if (!aspect) return false;
-    if (aspectId === 'AspectAgeOfOnset') return aspect.endsWith('Aspect_AgeOfOnset') || aspect === 'AspectAgeOfOnset';
-    return (aspect.endsWith('Aspect_Age') && !aspect.endsWith('Aspect_AgeOfOnset')) || aspect === 'AspectAge';
-  };
+  const raw = mags.toArray?.() ?? mags;
+  const arr = Array.isArray(raw) ? raw : [mags];
   for (const m of arr) {
     const aspect = getAspectId(m);
-    if (matches(aspect)) {
+    if (aspect && aspectMatch(aspect)) {
       const v = (m as { numericValue?: number })?.numericValue;
       return typeof v === 'number' ? v : undefined;
     }
@@ -52,20 +53,118 @@ function getMagnitude(
   return undefined;
 }
 
-/** Get category IDs from Subject.isCategorizedBy. */
-function getCategories(subject: Subject): string[] {
-  const cats = subject.isCategorizedBy;
+/** Get category IDs from Person.isCategorizedBy. */
+function getCategories(person: Person): string[] {
+  const cats = person.isCategorizedBy;
   if (!cats) return [];
-  const arr = cats.toArray?.() ?? (cats as Iterable<{ '@id'?: string }>[]);
+  const raw = cats.toArray?.() ?? cats;
+  const arr = Array.isArray(raw) ? raw : [cats];
   return arr
-    .map((c) => c?.['@id'])
+    .map((c) => (c as { '@id'?: string })?.['@id'])
     .filter((id): id is string => typeof id === 'string');
 }
 
-/** Extract display label from category ID (handles full URLs). */
+/** Human-readable label for category/aspect IDs. */
 function labelFromId(id: string): string {
+  const last = (id.split('/').pop() ?? id).replace(/_/g, ' ');
+  if (/^Status\s+Non\s*Ambulant$/i.test(last) || /StatusNonAmbulant/i.test(id)) return 'Non Ambulant';
+  if (/^Status\s+Ambulant$/i.test(last) || /StatusAmbulant/i.test(id)) return 'Ambulant';
+  const variantMatch = last.match(/Genetic\s*Group\s*Variant\s*(\d)|Variant\s*(\d)|^Variant(\d)$/i) || id.match(/Variant\s*(\d)|Variant(\d)/i);
+  if (variantMatch) return `Variant ${variantMatch[1] ?? variantMatch[2] ?? variantMatch[3] ?? ''}`;
+  return last.replace(/([a-z])([A-Z])/g, '$1 $2');
+}
+
+/** Match cluster category (compact Cluster1/2/3 or full IRI Cluster_1/2/3 or C1/2/3). */
+function isClusterId(id: string): boolean {
   const last = id.split('/').pop() ?? id;
-  return last.replace(/-/g, ' ');
+  return /^Cluster[123]$|^Cluster_[123]$|^C[123]$/.test(last);
+}
+
+/** Match genetic group category. */
+function isGeneticId(id: string): boolean {
+  const last = id.split('/').pop() ?? id;
+  return /GeneticGroup|Variant[123]|variant[123]/.test(last);
+}
+
+/** Match ambulation status. */
+function isAmbulationId(id: string): boolean {
+  const last = id.split('/').pop() ?? id;
+  return /Ambulant|Non.*Ambulant/.test(last);
+}
+
+/** Match dominant hand. */
+function isDominantHandId(id: string): boolean {
+  const last = id.split('/').pop() ?? id;
+  return /^LeftHanded$|^RightHanded$|Left|Right/.test(last);
+}
+
+/** Match baseline age magnitude aspect (AspectAge or .../Aspect_Age, excluding LoA). */
+function isBaselineAgeAspect(aspect: string): boolean {
+  const last = (aspect ?? '').split('/').pop() ?? aspect;
+  return (last === 'AspectAge' || last.endsWith('Aspect_Age')) && !last.includes('AgeAtLossOfAmbulation') && !last.includes('LossOfAmbulation');
+}
+
+/** Match LoA age magnitude aspect. */
+function isLoAAgeAspect(aspect: string): boolean {
+  const last = (aspect ?? '').split('/').pop() ?? aspect;
+  return last.includes('AgeAtLossOfAmbulation') || last.includes('LossOfAmbulation');
+}
+
+/** Match total MFM aggregate magnitude aspect. */
+function isTotalMFMAspect(aspect: string): boolean {
+  const last = (aspect ?? '').split('/').pop() ?? aspect;
+  return last.includes('AggregateScore') || last.includes('MFM32_Aggregate');
+}
+
+/** Read all magnitudes for a person from the raw graph (fallback when LDO returns only one). */
+function getMagnitudesFromGraph(
+  dataset: { match: (s: unknown, p: unknown, o: unknown, g?: unknown) => { toArray?: () => unknown[] } },
+  personUri: string | undefined,
+): Array<{ aspect: string; numericValue: number }> {
+  if (!personUri) return [];
+  const personNode = namedNode(personUri);
+  const hasMagNode = namedNode(HAS_MAGNITUDE);
+  const hasAspectNode = namedNode(HAS_ASPECT);
+  const numericValueNode = namedNode(NUMERIC_VALUE);
+  const magQuads = dataset.match(personNode, hasMagNode, null);
+  const toArray = (m: { toArray?: () => unknown[] }) => (m && typeof m.toArray === 'function' ? m.toArray() : []);
+  const quads = toArray(magQuads as { toArray?: () => unknown[] });
+  const out: Array<{ aspect: string; numericValue: number }> = [];
+  for (const q of quads as Array<{ object?: { value?: string } }>) {
+    const magNode = q?.object;
+    if (!magNode) continue;
+    const aspectQuads = dataset.match(magNode, hasAspectNode, null);
+    const aArr = toArray(aspectQuads as { toArray?: () => unknown[] });
+    const aspectQuad = (aArr as Array<{ object?: { value?: string } }>)[0];
+    const aspect = aspectQuad?.object?.value ?? '';
+    const valQuads = dataset.match(magNode, numericValueNode, null);
+    const vArr = toArray(valQuads as { toArray?: () => unknown[] });
+    const valQuad = (vArr as Array<{ object?: { value?: string } }>)[0];
+    const numStr = valQuad?.object?.value;
+    const numericValue = numStr != null ? Number(numStr) : NaN;
+    if (aspect && !Number.isNaN(numericValue)) out.push({ aspect, numericValue });
+  }
+  return out;
+}
+
+/** Normalize Person.hasParticipant to an array of MFMAssessmentEvent (handles LdSet or single object). */
+function getAssessmentEvents(person: Person): Array<{ timeFromBaseline: number; mfmScore: number }> {
+  const part = person.hasParticipant;
+  if (!part) return [];
+  const raw = part.toArray?.() ?? part;
+  const events = Array.isArray(raw) ? raw : [raw];
+  return events
+    .filter((e) => e && typeof (e as { hasMagnitude?: unknown }).hasMagnitude !== 'undefined' && typeof (e as { produces?: { hasMagnitude?: { numericValue?: number } } }).produces?.hasMagnitude !== 'undefined')
+    .map((e) => {
+      const ev = e as { hasMagnitude?: { numericValue?: number }; produces?: { hasMagnitude?: { numericValue?: number } } };
+      const time = ev.hasMagnitude?.numericValue;
+      const score = ev.produces?.hasMagnitude?.numericValue;
+      return {
+        timeFromBaseline: typeof time === 'number' ? time : 0,
+        mfmScore: typeof score === 'number' ? score : 0,
+      };
+    })
+    .sort((a, b) => a.timeFromBaseline - b.timeFromBaseline);
 }
 
 type Align = 'left' | 'right' | 'center';
@@ -98,20 +197,30 @@ const cellStyle = (width: number, align: Align): { minWidth: number; width: numb
 export function NemalineView() {
   const { targetUri } = useViewContext();
   const resource = useResource(targetUri);
-  const events = useMatchSubject(
-    AssessmentEventShapeType,
+  const persons = useMatchSubject(
+    PersonShapeType,
     RDF_TYPE,
-    GIST_DETERMINATION,
+    GIST_PERSON,
   );
 
-  const sortedEvents = useMemo(() => {
-    const arr = events?.toArray?.() ?? (events ? [...events] : []);
-    return (arr as AssessmentEvent[]).sort((a, b) => {
+  const sortedPersons = useMemo(() => {
+    const arr = persons?.toArray?.() ?? (persons ? [...persons] : []);
+    return (arr as Person[]).sort((a, b) => {
       const idA = a.isIdentifiedBy?.uniqueText ?? '';
       const idB = b.isIdentifiedBy?.uniqueText ?? '';
       return Number(idA) - Number(idB) || String(idA).localeCompare(String(idB));
     });
-  }, [events]);
+  }, [persons]);
+
+  const graphDataset = useMemo(() => {
+    if (sortedPersons.length === 0) return null;
+    try {
+      const ds = getDataset(sortedPersons[0] as Parameters<typeof getDataset>[0]);
+      return ds as Parameters<typeof getMagnitudesFromGraph>[0];
+    } catch {
+      return null;
+    }
+  }, [sortedPersons]);
 
   const isLoading = resource?.isLoading?.() ?? resource?.status?.type === 'unfetched';
 
@@ -132,77 +241,9 @@ export function NemalineView() {
       <LoadingBar isLoading={!!isLoading} />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         <Text variant="h1" style={styles.title}>
-          Nemaline Myopathy Assessments
+          Not supported on mobile
         </Text>
-        <Text variant="muted" style={styles.subtitle}>
-          {sortedEvents.length} assessment{sortedEvents.length === 1 ? '' : 's'}
-        </Text>
-        <View style={styles.tableWrapper}>
-          <Table style={styles.table}>
-            <TableHeader style={styles.tableHeader}>
-              <TableRow style={styles.headerRow}>
-                {COLUMNS.map((col) => (
-                  <TableHead
-                    key={col.key}
-                    style={[cellStyle(col.width, col.align), styles.tableHead]}
-                  >
-                    <Text variant="label" size="sm" numberOfLines={1} style={styles.headerLabel}>
-                      {col.label}
-                    </Text>
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody style={styles.tableBody}>
-              {sortedEvents.map((event, rowIndex) => {
-                const subj = event.hasParticipant;
-                const cats = getCategories(subj);
-                const cluster = cats.find((c) => /C[123]/.test(c));
-                const genetic = cats.find((c) => /variant[123]/.test(c));
-                const ambulation = cats.find((c) => /Ambulant|Non/.test(c));
-                const dominantHand = cats.find((c) => /Left|Right/.test(c));
-                const baselineAge = getMagnitude(subj, 'AspectAge');
-                const loaAge = getMagnitude(subj, 'AspectAgeOfOnset');
-                const totalMfm = event.produces?.hasMagnitude?.numericValue;
-                const belowAvg = !!event.isCategorizedBy;
-
-                const cells = [
-                  event.isIdentifiedBy?.uniqueText ?? '–',
-                  cluster ? labelFromId(cluster) : '–',
-                  genetic ? labelFromId(genetic) : '–',
-                  baselineAge != null ? baselineAge.toFixed(2) : '–',
-                  ambulation ? labelFromId(ambulation) : '–',
-                  loaAge != null ? loaAge.toFixed(2) : '–',
-                  dominantHand ? labelFromId(dominantHand) : '–',
-                  totalMfm != null ? String(totalMfm) : '–',
-                  belowAvg ? <Badge variant="secondary" style={styles.badge}>below</Badge> : '–',
-                ];
-
-                return (
-                  <TableRow
-                    key={event['@id'] ?? event.isIdentifiedBy?.uniqueText ?? rowIndex}
-                    style={[styles.bodyRow, rowIndex % 2 === 1 && styles.bodyRowStriped]}
-                  >
-                    {COLUMNS.map((col, i) => (
-                      <TableCell
-                        key={col.key}
-                        style={[cellStyle(col.width, col.align), styles.tableCell]}
-                      >
-                        {typeof cells[i] === 'string' ? (
-                          <Text variant="default" size="sm" style={styles.cellText}>
-                            {cells[i]}
-                          </Text>
-                        ) : (
-                          cells[i]
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </View>
+        
       </ScrollView>
     </View>
   );
@@ -277,5 +318,42 @@ const styles = StyleSheet.create({
   },
   badge: {
     alignSelf: 'center',
+  },
+  nestedRow: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'hsl(var(--border))',
+    backgroundColor: 'hsl(var(--muted) / 0.25)',
+  },
+  nestedCell: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingLeft: 28,
+  },
+  nestedWrapper: {
+    marginTop: 2,
+  },
+  nestedTitle: {
+    marginBottom: 8,
+  },
+  nestedTable: {
+    width: '100%',
+    maxWidth: 420,
+  },
+  nestedTableHeader: {
+    backgroundColor: 'hsl(var(--muted))',
+    borderBottomWidth: 1,
+    borderBottomColor: 'hsl(var(--border))',
+  },
+  nestedTableHead: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  nestedBodyRow: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'hsl(var(--border))',
+  },
+  nestedTableCell: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
   },
 });

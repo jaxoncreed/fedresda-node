@@ -1,10 +1,10 @@
 import { ResourceViewConfig } from 'linked-data-browser';
 import { Stethoscope } from 'lucide-react-native';
 import { NemalineView } from './NemalineView';
-import { AssessmentEventShapeType } from '../../.ldo/nemaline_myopathy_gist.shapeTypes';
+import { PersonShapeType } from '../../.ldo/nemaline_myopathy_gist.shapeTypes';
 
 const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
-const GIST_DETERMINATION = 'https://w3id.org/semanticarts/ns/ontology/gist/Determination';
+const GIST_PERSON = 'https://w3id.org/semanticarts/ns/ontology/gist/Person';
 
 export const NemalineConfig: ResourceViewConfig = {
   name: 'nemaline',
@@ -14,10 +14,10 @@ export const NemalineConfig: ResourceViewConfig = {
   canDisplay: (_targetUri, targetResource, dataset) => {
     if (targetResource?.type !== 'SolidLeaf') return false;
     if (!targetResource.isDataResource?.()) return false;
-    const events = dataset
-      .usingType(AssessmentEventShapeType)
-      .matchSubject(RDF_TYPE, GIST_DETERMINATION);
-    const count = events?.size ?? events?.toArray?.()?.length ?? 0;
+    const persons = dataset
+      .usingType(PersonShapeType)
+      .matchSubject(RDF_TYPE, GIST_PERSON);
+    const count = persons?.size ?? persons?.toArray?.()?.length ?? 0;
     return count > 0;
   },
 };

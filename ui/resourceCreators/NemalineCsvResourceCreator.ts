@@ -7,19 +7,17 @@ import type {
 } from '@ldo/connected';
 import { Stethoscope } from 'lucide-react-native';
 import { ResourceCreatorConfig } from 'linked-data-browser';
-import { AssessmentEventShapeType } from '../.ldo/nemaline_myopathy_gist.shapeTypes';
+import { PersonShapeType } from '../.ldo/nemaline_myopathy_gist.shapeTypes';
 import type {
-  AssessmentEvent,
-  Subject,
-  TaskPerformance,
-  TaskPerformanceProduces,
-  TotalScoreResult,
-  TotalMFMMagnitude,
+  Person,
+  MFMAssessmentEvent,
+  AssessmentResult,
   ID,
-  AgeAtAssessmentMagnitude,
+  BaselineAgeMagnitude,
   LoAAgeMagnitude,
-  MFMSubScoreMagnitude,
-  TimeOffsetMagnitude,
+  TotalMFMMagnitude,
+  TimeFromBaselineMagnitude,
+  MFMScoreMagnitude,
 } from '../.ldo/nemaline_myopathy_gist.typings';
 
 /** Container with context exposed so we can get the dataset for createData/commitToRemote. */
@@ -48,17 +46,13 @@ function parseNum(s: string): number {
   return Number(t);
 }
 
-/** Build an AssessmentEvent LDO from a CSV row. */
-function rowToAssessmentEvent(
-  row: string[],
-  baseUri: string,
-): Omit<AssessmentEvent, '@context'> {
-  // CSV columns: row#, Id, Cluster, Baseline_Age, Genetic_Group, Baseline_loA_status,
-  // LoA Age, Time_V1-5, MFM_V1-5, Dominant hand, total MFM, Below average
+/** CSV columns: row#, Id, Cluster, Baseline_Age, Genetic_Group, Baseline_loA_status,
+ * LoA Age, Time_V1-5, MFM_V1-5, Dominant hand, total MFM, Below average */
+function rowToPerson(row: string[], baseUri: string): Omit<Person, '@context'> {
   const id = row[1] ?? '';
   const cluster = row[2] ?? '';
   const baselineAge = parseNum(row[3]);
-  const geneticGroup = row[4] ?? '';
+  const geneticGroup = (row[4] ?? '').toLowerCase();
   const loaStatus = row[5] ?? '';
   const loaAge = parseNum(row[6]);
   const timeV1 = parseNum(row[7]);
@@ -75,99 +69,120 @@ function rowToAssessmentEvent(
   const totalMfm = parseNum(row[18]);
   const belowAverage = (row[19] ?? '').toLowerCase();
 
-  const eventUri = `${baseUri}#assessment-${id}`;
-  const subjectUri = `${baseUri}#subject-${id}`;
+  const personUri = `${baseUri}#person-${id}`;
   const idUri = `${baseUri}#id-${id}`;
-  const totalResultUri = `${baseUri}#total-result-${id}`;
 
-  const subjectCategories: Subject['isCategorizedBy'] = set(
-    { '@id': cluster as 'C1' | 'C2' | 'C3' },
-    { '@id': geneticGroup as 'variant1' | 'variant2' | 'variant3' },
-    {
-      '@id': loaStatus === 'Ambulant' ? 'Ambulant' : ('NonAmbulant' as const),
-    },
-  );
-  if (dominantHand === 'Left' || dominantHand === 'Right') {
-    subjectCategories.add({ '@id': dominantHand });
-  }
+  const categories = set<
+    | { '@id': 'Cluster1' }
+    | { '@id': 'Cluster2' }
+    | { '@id': 'Cluster3' }
+    | { '@id': 'GeneticGroupVariant1' }
+    | { '@id': 'GeneticGroupVariant2' }
+    | { '@id': 'GeneticGroupVariant3' }
+    | { '@id': 'LeftHanded' }
+    | { '@id': 'RightHanded' }
+    | { '@id': 'StatusAmbulant' }
+    | { '@id': 'StatusNonAmbulant' }
+    | { '@id': 'PerformanceBelowAverage' }
+  >();
+  if (cluster === 'C1') categories.add({ '@id': 'Cluster1' });
+  else if (cluster === 'C2') categories.add({ '@id': 'Cluster2' });
+  else if (cluster === 'C3') categories.add({ '@id': 'Cluster3' });
+  if (geneticGroup === 'variant1') categories.add({ '@id': 'GeneticGroupVariant1' });
+  else if (geneticGroup === 'variant2') categories.add({ '@id': 'GeneticGroupVariant2' });
+  else if (geneticGroup === 'variant3') categories.add({ '@id': 'GeneticGroupVariant3' });
+  categories.add(loaStatus === 'Ambulant' ? { '@id': 'StatusAmbulant' } : { '@id': 'StatusNonAmbulant' });
+  if (dominantHand === 'Left') categories.add({ '@id': 'LeftHanded' });
+  if (dominantHand === 'Right') categories.add({ '@id': 'RightHanded' });
+  if (belowAverage === 'below') categories.add({ '@id': 'PerformanceBelowAverage' });
 
-  const subjectMagnitudes: Subject['hasMagnitude'] = set(
-    {
-      type: set({ '@id': 'Magnitude' as const }),
-      hasAspect: { '@id': 'AspectAge' },
-      numericValue: baselineAge,
-    } as AgeAtAssessmentMagnitude,
-  );
+  const magnitudes = set<
+    BaselineAgeMagnitude | LoAAgeMagnitude | TotalMFMMagnitude
+  >();
+  magnitudes.add({
+    '@id': `${baseUri}#baseline-age-${id}`,
+    type: set({ '@id': 'Magnitude' }),
+    hasAspect: { '@id': 'AspectAge' },
+    hasUnitOfMeasure: { '@id': 'UnitYear' },
+    numericValue: Number.isNaN(baselineAge) ? 0 : baselineAge,
+  } as BaselineAgeMagnitude);
   if (!Number.isNaN(loaAge)) {
-    subjectMagnitudes.add({
-      type: set({ '@id': 'Magnitude' as const }),
-      hasAspect: { '@id': 'AspectAgeOfOnset' },
+    magnitudes.add({
+      '@id': `${baseUri}#loa-age-${id}`,
+      type: set({ '@id': 'Magnitude' }),
+      hasAspect: { '@id': 'AspectAgeAtLossOfAmbulation' },
+      hasUnitOfMeasure: { '@id': 'UnitYear' },
       numericValue: loaAge,
     } as LoAAgeMagnitude);
   }
-
-  const subject: Subject = {
-    '@id': subjectUri,
-    type: set({ '@id': 'Person' }),
-    isCategorizedBy: subjectCategories,
-    hasMagnitude: subjectMagnitudes,
-  };
-
-  const taskPerf = (
-    time: number,
-    mfm: number,
-    idx: number,
-  ): TaskPerformance => ({
-    type: set({ '@id': 'Event' }),
-    produces: {
-      type: set({ '@id': 'Content' }),
-      hasMagnitude: {
-        type: set({ '@id': 'Magnitude' }),
-        hasAspect: { '@id': 'AspectMFMSubScore' },
-        numericValue: Number.isNaN(mfm) ? 0 : mfm,
-      } as MFMSubScoreMagnitude,
-    } as TaskPerformanceProduces,
-    hasMagnitude: {
+  if (!Number.isNaN(totalMfm)) {
+    magnitudes.add({
+      '@id': `${baseUri}#total-mfm-${id}`,
       type: set({ '@id': 'Magnitude' }),
-      hasAspect: { '@id': 'AspectTimeOffset' },
+      hasAspect: { '@id': 'AspectMFM32AggregateScore' },
+      numericValue: totalMfm,
+    } as TotalMFMMagnitude);
+  }
+
+  const visits: [number, number][] = [
+    [timeV1, mfmV1],
+    [timeV2, mfmV2],
+    [timeV3, mfmV3],
+    [timeV4, mfmV4],
+    [timeV5, mfmV5],
+  ];
+
+  const assessmentEvents = set<MFMAssessmentEvent>();
+  for (let v = 0; v < visits.length; v++) {
+    const [time, mfm] = visits[v];
+    const eventUri = `${baseUri}#assessment-${id}-v${v + 1}`;
+    const resultUri = `${baseUri}#result-${id}-v${v + 1}`;
+
+    const timeMag: TimeFromBaselineMagnitude = {
+      type: set({ '@id': 'Magnitude' }),
+      hasAspect: { '@id': 'AspectDurationSinceStudyEnrollment' },
+      hasUnitOfMeasure: { '@id': 'UnitYear' },
       numericValue: Number.isNaN(time) ? 0 : time,
-    } as TimeOffsetMagnitude,
-  });
+    };
 
-  const hasPart = set<TaskPerformance>(
-    taskPerf(timeV1, mfmV1, 1),
-    taskPerf(timeV2, mfmV2, 2),
-    taskPerf(timeV3, mfmV3, 3),
-    taskPerf(timeV4, mfmV4, 4),
-    taskPerf(timeV5, mfmV5, 5),
-  );
+    const mfmMag: MFMScoreMagnitude = {
+      type: set({ '@id': 'Magnitude' }),
+      hasAspect: { '@id': 'AspectMFM32VisitScore' },
+      numericValue: Number.isNaN(mfm) ? 0 : mfm,
+    };
 
-  const event: Omit<AssessmentEvent, '@context'> = {
-    '@id': eventUri,
-    type: set({ '@id': 'Determination' }),
+    const result: AssessmentResult = {
+      '@id': resultUri,
+      type: set({ '@id': 'Content' }),
+      isAbout: { '@id': 'ConceptMotorFunction' },
+      hasMagnitude: mfmMag,
+    };
+
+    const event: MFMAssessmentEvent = {
+      '@id': eventUri,
+      type: set({ '@id': 'Determination' }),
+      isCategorizedBy: { '@id': 'AssessmentTypeMFM32' },
+      hasMagnitude: timeMag,
+      hasParticipant: { '@id': personUri } as Person,
+      produces: result,
+    };
+    assessmentEvents.add(event);
+  }
+
+  const person: Omit<Person, '@context'> = {
+    '@id': personUri,
+    type: set({ '@id': 'Person' }),
     isIdentifiedBy: {
       '@id': idUri,
       type: set({ '@id': 'ID' }),
       uniqueText: id,
     } as ID,
-    hasParticipant: subject,
-    produces: {
-      '@id': totalResultUri,
-      type: set({ '@id': 'Content' }),
-      hasMagnitude: {
-        type: set({ '@id': 'Magnitude' }),
-        hasAspect: { '@id': 'AspectTotalMFM' },
-        numericValue: Number.isNaN(totalMfm) ? 0 : totalMfm,
-      } as TotalMFMMagnitude,
-    } as TotalScoreResult,
-    hasPart,
+    isCategorizedBy: categories,
+    hasMagnitude: magnitudes,
+    hasParticipant: assessmentEvents,
   };
 
-  if (belowAverage === 'below') {
-    event.isCategorizedBy = { '@id': 'BelowAverage' };
-  }
-
-  return event;
+  return person;
 }
 
 export const NemalineCsvResourceCreator: ResourceCreatorConfig = {
@@ -198,7 +213,6 @@ export const NemalineCsvResourceCreator: ResourceCreatorConfig = {
       return;
     }
 
-    const header = rows[0];
     const dataRows = rows.slice(1).filter((row) => row.some((c) => c.trim()));
 
     createUtils.loadingMessage(`Converting ${dataRows.length} rows to RDF…`);
@@ -224,11 +238,11 @@ export const NemalineCsvResourceCreator: ResourceCreatorConfig = {
     const transaction = dataset.startTransaction();
 
     for (const row of dataRows) {
-      const eventData = rowToAssessmentEvent(row, baseUri);
+      const personData = rowToPerson(row, baseUri);
       transaction
-        .usingType(AssessmentEventShapeType)
+        .usingType(PersonShapeType)
         .write(childResource.uri)
-        .fromJson(eventData as AssessmentEvent);
+        .fromJson(personData as Person);
     }
 
     createUtils.loadingMessage(`Writing content to ${slug}…`);
@@ -239,7 +253,7 @@ export const NemalineCsvResourceCreator: ResourceCreatorConfig = {
     if (commitResult.isError) {
       createUtils.toast(commitResult.message, { title: 'Error' });
     } else {
-      createUtils.toast(`${slug} created (${dataRows.length} assessments).`);
+      createUtils.toast(`${slug} created (${dataRows.length} persons).`);
     }
   },
 };

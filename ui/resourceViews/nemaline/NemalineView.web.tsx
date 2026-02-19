@@ -1,39 +1,42 @@
 /**
  * Web-only implementation using a semantic HTML table for reliable layout and styling.
  */
-import React, { useMemo } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import React, { useMemo, useState, useCallback } from 'react';
+import { View, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { Text, Badge, LoadingBar, useViewContext } from 'linked-data-browser';
 import { useResource, useMatchSubject } from '@ldo/solid-react';
-import { AssessmentEventShapeType } from '../../.ldo/nemaline_myopathy_gist.shapeTypes';
-import type { AssessmentEvent, Subject } from '../../.ldo/nemaline_myopathy_gist.typings';
+import { getDataset } from '@ldo/ldo';
+import { namedNode } from '@ldo/rdf-utils';
+import { ChevronDown, ChevronRight, ChevronsDown, ChevronsUp } from 'lucide-react-native';
+import { PersonShapeType } from '../../.ldo/nemaline_myopathy_gist.shapeTypes';
+import type { Person } from '../../.ldo/nemaline_myopathy_gist.typings';
 
 const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
-const GIST_DETERMINATION = 'https://w3id.org/semanticarts/ns/ontology/gist/Determination';
+const GIST_PERSON = 'https://w3id.org/semanticarts/ns/ontology/gist/Person';
+const HAS_MAGNITUDE = 'https://w3id.org/semanticarts/ns/ontology/gist/hasMagnitude';
+const HAS_ASPECT = 'https://w3id.org/semanticarts/ns/ontology/gist/hasAspect';
+const NUMERIC_VALUE = 'https://w3id.org/semanticarts/ns/ontology/gist/numericValue';
+
+function getAspectId(m: unknown): string | undefined {
+  const hasAspect = (m as { hasAspect?: { '@id'?: string } | { toArray?: () => Array<{ '@id'?: string }> } }).hasAspect;
+  if (hasAspect == null) return undefined;
+  const first = typeof (hasAspect as { toArray?: () => unknown[] }).toArray === 'function'
+    ? (hasAspect as { toArray: () => Array<{ '@id'?: string }> }).toArray()?.[0]
+    : (hasAspect as { '@id'?: string });
+  return (first as { '@id'?: string })?.['@id'];
+}
 
 function getMagnitude(
-  subject: Subject,
-  aspectId: 'AspectAge' | 'AspectAgeOfOnset',
+  person: Person,
+  aspectMatch: (aspect: string) => boolean,
 ): number | undefined {
-  const mags = subject.hasMagnitude;
+  const mags = person.hasMagnitude;
   if (!mags) return undefined;
-  const getAspectId = (m: unknown): string | undefined => {
-    const hasAspect = (m as { hasAspect?: { '@id'?: string } | { toArray?: () => Array<{ '@id'?: string }> } }).hasAspect;
-    if (hasAspect == null) return undefined;
-    const first = typeof (hasAspect as { toArray?: () => unknown[] }).toArray === 'function'
-      ? (hasAspect as { toArray: () => Array<{ '@id'?: string }> }).toArray()?.[0]
-      : (hasAspect as { '@id'?: string });
-    return (first as { '@id'?: string })?.['@id'];
-  };
-  const arr = mags.toArray?.() ?? (mags as Iterable<unknown>[]);
-  const matches = (aspect: string | undefined): boolean => {
-    if (!aspect) return false;
-    if (aspectId === 'AspectAgeOfOnset') return aspect.endsWith('Aspect_AgeOfOnset') || aspect === 'AspectAgeOfOnset';
-    return (aspect.endsWith('Aspect_Age') && !aspect.endsWith('Aspect_AgeOfOnset')) || aspect === 'AspectAge';
-  };
+  const raw = mags.toArray?.() ?? mags;
+  const arr = Array.isArray(raw) ? raw : [mags];
   for (const m of arr) {
     const aspect = getAspectId(m);
-    if (matches(aspect)) {
+    if (aspect && aspectMatch(aspect)) {
       const v = (m as { numericValue?: number })?.numericValue;
       return typeof v === 'number' ? v : undefined;
     }
@@ -41,18 +44,109 @@ function getMagnitude(
   return undefined;
 }
 
-function getCategories(subject: Subject): string[] {
-  const cats = subject.isCategorizedBy;
+/** Read all magnitudes for a person from the raw graph (fallback when LDO returns only one). */
+function getMagnitudesFromGraph(
+  dataset: { match: (s: unknown, p: unknown, o: unknown, g?: unknown) => { toArray?: () => unknown[] } },
+  personUri: string | undefined,
+): Array<{ aspect: string; numericValue: number }> {
+  if (!personUri) return [];
+  const personNode = namedNode(personUri);
+  const hasMagNode = namedNode(HAS_MAGNITUDE);
+  const hasAspectNode = namedNode(HAS_ASPECT);
+  const numericValueNode = namedNode(NUMERIC_VALUE);
+  const magQuads = dataset.match(personNode, hasMagNode, null);
+  const toArray = (m: { toArray?: () => unknown[] }) => (m && typeof m.toArray === 'function' ? m.toArray() : []);
+  const quads = toArray(magQuads as { toArray?: () => unknown[] });
+  const out: Array<{ aspect: string; numericValue: number }> = [];
+  for (const q of quads as Array<{ object?: { value?: string } }>) {
+    const magNode = q?.object;
+    if (!magNode) continue;
+    const aspectQuads = dataset.match(magNode, hasAspectNode, null);
+    const aArr = toArray(aspectQuads as { toArray?: () => unknown[] });
+    const aspectQuad = (aArr as Array<{ object?: { value?: string } }>)[0];
+    const aspect = aspectQuad?.object?.value ?? '';
+    const valQuads = dataset.match(magNode, numericValueNode, null);
+    const vArr = toArray(valQuads as { toArray?: () => unknown[] });
+    const valQuad = (vArr as Array<{ object?: { value?: string } }>)[0];
+    const numStr = valQuad?.object?.value;
+    const numericValue = numStr != null ? Number(numStr) : NaN;
+    if (aspect && !Number.isNaN(numericValue)) out.push({ aspect, numericValue });
+  }
+  return out;
+}
+
+function getCategories(person: Person): string[] {
+  const cats = person.isCategorizedBy;
   if (!cats) return [];
-  const arr = cats.toArray?.() ?? (cats as Iterable<{ '@id'?: string }>[]);
+  const raw = cats.toArray?.() ?? cats;
+  const arr = Array.isArray(raw) ? raw : [cats];
   return arr
-    .map((c) => c?.['@id'])
+    .map((c) => (c as { '@id'?: string })?.['@id'])
     .filter((id): id is string => typeof id === 'string');
 }
 
+/** Human-readable label for category/aspect IDs. */
 function labelFromId(id: string): string {
+  const last = (id.split('/').pop() ?? id).replace(/_/g, ' ');
+  if (/^Status\s+Non\s*Ambulant$/i.test(last) || /StatusNonAmbulant/i.test(id)) return 'Non Ambulant';
+  if (/^Status\s+Ambulant$/i.test(last) || /StatusAmbulant/i.test(id)) return 'Ambulant';
+  const variantMatch = last.match(/Genetic\s*Group\s*Variant\s*(\d)|Variant\s*(\d)|^Variant(\d)$/i) || id.match(/Variant\s*(\d)|Variant(\d)/i);
+  if (variantMatch) return `Variant ${variantMatch[1] ?? variantMatch[2] ?? variantMatch[3] ?? ''}`;
+  return last.replace(/([a-z])([A-Z])/g, '$1 $2');
+}
+
+function isClusterId(id: string): boolean {
   const last = id.split('/').pop() ?? id;
-  return last.replace(/-/g, ' ');
+  return /^Cluster[123]$|^Cluster_[123]$|^C[123]$/.test(last);
+}
+
+function isGeneticId(id: string): boolean {
+  const last = id.split('/').pop() ?? id;
+  return /GeneticGroup|Variant[123]|variant[123]/.test(last);
+}
+
+function isAmbulationId(id: string): boolean {
+  const last = id.split('/').pop() ?? id;
+  return /Ambulant|Non.*Ambulant/.test(last);
+}
+
+function isDominantHandId(id: string): boolean {
+  const last = id.split('/').pop() ?? id;
+  return /^LeftHanded$|^RightHanded$|Left|Right/.test(last);
+}
+
+function isBaselineAgeAspect(aspect: string): boolean {
+  const last = (aspect ?? '').split('/').pop() ?? aspect;
+  return (last === 'AspectAge' || last.endsWith('Aspect_Age')) && !last.includes('AgeAtLossOfAmbulation') && !last.includes('LossOfAmbulation');
+}
+
+function isLoAAgeAspect(aspect: string): boolean {
+  const last = (aspect ?? '').split('/').pop() ?? aspect;
+  return last.includes('AgeAtLossOfAmbulation') || last.includes('LossOfAmbulation');
+}
+
+function isTotalMFMAspect(aspect: string): boolean {
+  const last = (aspect ?? '').split('/').pop() ?? aspect;
+  return last.includes('AggregateScore') || last.includes('MFM32_Aggregate');
+}
+
+function getAssessmentEvents(person: Person): Array<{ timeFromBaseline: number; mfmScore: number }> {
+  const part = person.hasParticipant;
+  if (!part) return [];
+  const raw = part.toArray?.() ?? part;
+  const events = Array.isArray(raw) ? raw : [raw];
+  return events
+    .filter((e) => e && typeof (e as { hasMagnitude?: unknown }).hasMagnitude !== 'undefined' && typeof (e as { produces?: { hasMagnitude?: { numericValue?: number } } }).produces?.hasMagnitude !== 'undefined')
+    .map((e) => {
+      const ev = e as { hasMagnitude?: { numericValue?: number }; produces?: { hasMagnitude?: { numericValue?: number } } };
+      const time = ev.hasMagnitude?.numericValue;
+      const score = ev.produces?.hasMagnitude?.numericValue;
+      return {
+        timeFromBaseline: typeof time === 'number' ? time : 0,
+        mfmScore: typeof score === 'number' ? score : 0,
+      };
+    })
+    .sort((a, b) => a.timeFromBaseline - b.timeFromBaseline);
 }
 
 type Align = 'left' | 'right' | 'center';
@@ -72,22 +166,61 @@ const COLUMNS: ReadonlyArray<{ key: string; label: string; align: Align }> = [
 export function NemalineView() {
   const { targetUri } = useViewContext();
   const resource = useResource(targetUri);
-  const events = useMatchSubject(
-    AssessmentEventShapeType,
+  const persons = useMatchSubject(
+    PersonShapeType,
     RDF_TYPE,
-    GIST_DETERMINATION,
+    GIST_PERSON,
   );
 
-  const sortedEvents = useMemo(() => {
-    const arr = events?.toArray?.() ?? (events ? [...events] : []);
-    return (arr as AssessmentEvent[]).sort((a, b) => {
+  const sortedPersons = useMemo(() => {
+    const arr = persons?.toArray?.() ?? (persons ? [...persons] : []);
+    return (arr as Person[]).sort((a, b) => {
       const idA = a.isIdentifiedBy?.uniqueText ?? '';
       const idB = b.isIdentifiedBy?.uniqueText ?? '';
       return Number(idA) - Number(idB) || String(idA).localeCompare(String(idB));
     });
-  }, [events]);
+  }, [persons]);
+
+  const graphDataset = useMemo(() => {
+    if (sortedPersons.length === 0) return null;
+    try {
+      const ds = getDataset(sortedPersons[0] as Parameters<typeof getDataset>[0]);
+      return ds as Parameters<typeof getMagnitudesFromGraph>[0];
+    } catch {
+      return null;
+    }
+  }, [sortedPersons]);
 
   const isLoading = resource?.isLoading?.() ?? resource?.status?.type === 'unfetched';
+  const [expandedKeys, setExpandedKeys] = useState<Record<string, boolean>>({});
+  const isRowExpanded = useCallback(
+    (key: string) => expandedKeys[key] !== false,
+    [expandedKeys],
+  );
+  const setRowExpanded = useCallback((key: string, value: boolean) => {
+    setExpandedKeys((prev) => ({ ...prev, [key]: value }));
+  }, []);
+  const hasAnyAssessments = useMemo(
+    () => sortedPersons.some((p) => getAssessmentEvents(p).length > 0),
+    [sortedPersons],
+  );
+  const allExpanded = useMemo(() => {
+    if (!hasAnyAssessments) return true;
+    const withAssessments = sortedPersons.filter((p) => getAssessmentEvents(p).length > 0);
+    return withAssessments.every((p) => isRowExpanded(p['@id'] ?? p.isIdentifiedBy?.uniqueText ?? ''));
+  }, [hasAnyAssessments, sortedPersons, isRowExpanded]);
+  const expandOrCollapseAll = useCallback(() => {
+    const withAssessments = sortedPersons.filter((p) => getAssessmentEvents(p).length > 0);
+    const next = !allExpanded;
+    setExpandedKeys((prev) => {
+      const out = { ...prev };
+      withAssessments.forEach((p) => {
+        const k = p['@id'] ?? p.isIdentifiedBy?.uniqueText ?? '';
+        if (k) out[k] = next;
+      });
+      return out;
+    });
+  }, [allExpanded, sortedPersons]);
 
   if (!targetUri || !resource) return null;
 
@@ -111,12 +244,13 @@ export function NemalineView() {
         <Text variant="h1" style={styles.title}>
           Nemaline Myopathy Assessments
         </Text>
-        <Text variant="muted" style={styles.subtitle}>
-          {sortedEvents.length} assessment{sortedEvents.length === 1 ? '' : 's'}
+        <Text style={styles.subtitle}>
+          {sortedPersons.length} participant{sortedPersons.length === 1 ? '' : 's'}
         </Text>
-        <View style={styles.tableWrapper}>
+        <View style={styles.tableWrapper} className="nemaline-table-wrapper">
           <table className="nemaline-table">
             <colgroup>
+              <col className="col-collapse" />
               {COLUMNS.map((col) => (
                 <col
                   key={col.key}
@@ -124,8 +258,23 @@ export function NemalineView() {
                 />
               ))}
             </colgroup>
-            <thead>
+            <thead className="nemaline-thead-sticky">
               <tr>
+                <th className="nemaline-th-collapse" scope="col">
+                  {hasAnyAssessments && (
+                    <Pressable
+                      onPress={expandOrCollapseAll}
+                      className="nemaline-expand-collapse-all"
+                      aria-label={allExpanded ? 'Collapse all' : 'Expand all'}
+                    >
+                      {allExpanded ? (
+                        <ChevronsUp size={18} color="currentColor" />
+                      ) : (
+                        <ChevronsDown size={18} color="currentColor" />
+                      )}
+                    </Pressable>
+                  )}
+                </th>
                 {COLUMNS.map((col) => (
                   <th key={col.key} className={thClass(col.align)} scope="col">
                     {col.label}
@@ -134,20 +283,27 @@ export function NemalineView() {
               </tr>
             </thead>
             <tbody>
-              {sortedEvents.map((event, rowIndex) => {
-                const subj = event.hasParticipant;
-                const cats = getCategories(subj);
-                const cluster = cats.find((c) => /C[123]/.test(c));
-                const genetic = cats.find((c) => /variant[123]/.test(c));
-                const ambulation = cats.find((c) => /Ambulant|Non/.test(c));
-                const dominantHand = cats.find((c) => /Left|Right/.test(c));
-                const baselineAge = getMagnitude(subj, 'AspectAge');
-                const loaAge = getMagnitude(subj, 'AspectAgeOfOnset');
-                const totalMfm = event.produces?.hasMagnitude?.numericValue;
-                const belowAvg = !!event.isCategorizedBy;
+              {sortedPersons.map((person, rowIndex) => {
+                const cats = getCategories(person);
+                const cluster = cats.find(isClusterId);
+                const genetic = cats.find(isGeneticId);
+                const ambulation = cats.find(isAmbulationId);
+                const dominantHand = cats.find(isDominantHandId);
+                let baselineAge = getMagnitude(person, isBaselineAgeAspect);
+                let loaAge = getMagnitude(person, isLoAAgeAspect);
+                let totalMfm = getMagnitude(person, isTotalMFMAspect);
+                if (graphDataset && (loaAge == null || totalMfm == null)) {
+                  const fromGraph = getMagnitudesFromGraph(graphDataset, person['@id']);
+                  if (loaAge == null) loaAge = fromGraph.find((m) => isLoAAgeAspect(m.aspect))?.numericValue;
+                  if (totalMfm == null) totalMfm = fromGraph.find((m) => isTotalMFMAspect(m.aspect))?.numericValue;
+                }
+                const belowAvg = cats.some((c) => /BelowAverage|Below/.test(c));
+                const assessmentEvents = getAssessmentEvents(person);
 
+                const personKey = person['@id'] ?? person.isIdentifiedBy?.uniqueText ?? String(rowIndex);
+                const rowExpanded = assessmentEvents.length > 0 && isRowExpanded(personKey);
                 const cells = [
-                  event.isIdentifiedBy?.uniqueText ?? '–',
+                  person.isIdentifiedBy?.uniqueText ?? '–',
                   cluster ? labelFromId(cluster) : '–',
                   genetic ? labelFromId(genetic) : '–',
                   baselineAge != null ? baselineAge.toFixed(2) : '–',
@@ -159,13 +315,54 @@ export function NemalineView() {
                 ];
 
                 return (
-                  <tr key={event['@id'] ?? event.isIdentifiedBy?.uniqueText ?? rowIndex}>
-                    {COLUMNS.map((col, i) => (
-                      <td key={col.key} className={tdClass(col.align)}>
-                        {cells[i]}
+                  <React.Fragment key={personKey}>
+                    <tr>
+                      <td className="nemaline-td-collapse">
+                        {assessmentEvents.length > 0 ? (
+                          <Pressable
+                            onPress={() => setRowExpanded(personKey, !rowExpanded)}
+                            className="nemaline-row-chevron"
+                            aria-label={rowExpanded ? 'Collapse' : 'Expand'}
+                          >
+                            {rowExpanded ? (
+                              <ChevronDown size={18} color="currentColor" />
+                            ) : (
+                              <ChevronRight size={18} color="currentColor" />
+                            )}
+                          </Pressable>
+                        ) : null}
                       </td>
-                    ))}
-                  </tr>
+                      {COLUMNS.map((col, i) => (
+                        <td key={col.key} className={tdClass(col.align)}>
+                          {cells[i]}
+                        </td>
+                      ))}
+                    </tr>
+                    {assessmentEvents.length > 0 && rowExpanded && (
+                      <tr className="nemaline-nested-row">
+                        <td colSpan={COLUMNS.length + 1} className="nemaline-nested-cell">
+                          <table className="nemaline-nested-table">
+                            <thead>
+                              <tr>
+                                <th className="nemaline-nested-th">Visit</th>
+                                <th className="nemaline-nested-th">Time from baseline (yr)</th>
+                                <th className="nemaline-nested-th">MFM score</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {assessmentEvents.map((ev, i) => (
+                                <tr key={i}>
+                                  <td className="nemaline-nested-td">V{i + 1}</td>
+                                  <td className="nemaline-nested-td">{ev.timeFromBaseline.toFixed(3)}</td>
+                                  <td className="nemaline-nested-td">{ev.mfmScore}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 );
               })}
             </tbody>
@@ -181,17 +378,19 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: {
     padding: 24,
+    paddingBottom: 48,
     maxWidth: 1200,
     alignSelf: 'center',
     width: '100%',
   },
   title: { marginBottom: 4 },
-  subtitle: { marginBottom: 24 },
+  subtitle: {
+    marginBottom: 20,
+    color: 'hsl(var(--muted-foreground))',
+    fontSize: 14,
+  },
   tableWrapper: {
-    borderRadius: 10,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'hsl(var(--border))',
-    backgroundColor: 'hsl(var(--card))',
+    marginHorizontal: 0,
+    /* Border, radius, shadow via .nemaline-table-wrapper in global.css for reliable rendering */
   },
 });

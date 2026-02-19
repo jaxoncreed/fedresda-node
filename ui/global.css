@@ -67,35 +67,105 @@
   /* Chrome, Safari, Opera */
 }
 
+/* Nemaline table wrapper: border, shadow (no overflow so sticky header works) */
+.nemaline-table-wrapper {
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  box-shadow: 0 1px 3px 0 hsl(0 0% 0% / 0.04);
+}
+
 /* Nemaline assessments: semantic table layout */
 .nemaline-table {
   border-collapse: collapse;
   table-layout: fixed;
   width: 100%;
-  font-size: 14px;
+  font-size: 0.875rem;
+  line-height: 1.4;
   font-family: inherit;
+  color: hsl(var(--foreground));
+}
+
+.nemaline-thead-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: hsl(var(--card));
+  box-shadow: 0 1px 3px 0 hsl(var(--border) / 0.5);
 }
 
 .nemaline-table thead {
-  background: hsl(var(--muted));
-  border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  border-bottom: 2px solid hsl(var(--border));
 }
 
 .nemaline-table th {
-  padding: 12px 14px;
+  padding: 0.75rem 0.875rem;
   font-weight: 600;
-  color: hsl(var(--foreground));
+  font-size: 0.8125rem;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
   white-space: nowrap;
 }
 
+.nemaline-th-collapse {
+  width: 2.5em;
+  min-width: 2.5em;
+  padding: 0.5rem 0.25rem 0.5rem 0.625rem !important;
+  text-align: center;
+  vertical-align: middle;
+  text-transform: none;
+}
+
+.nemaline-td-collapse {
+  width: 2.5em;
+  min-width: 2.5em;
+  padding: 0.5rem 0.25rem 0.5rem 0.625rem !important;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.nemaline-expand-collapse-all,
+.nemaline-row-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  border: none;
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  border-radius: 0.375rem;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.nemaline-expand-collapse-all:hover,
+.nemaline-row-chevron:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--foreground));
+}
+
 .nemaline-table td {
-  padding: 10px 14px;
+  padding: 0.625rem 0.875rem;
   color: hsl(var(--foreground));
   border-bottom: 1px solid hsl(var(--border));
+  vertical-align: middle;
+}
+
+.nemaline-table tbody tr {
+  transition: background-color 0.1s ease;
+}
+
+.nemaline-table tbody tr:hover {
+  background: hsl(var(--muted) / 0.6);
 }
 
 .nemaline-table tbody tr:nth-child(even) {
-  background: hsl(var(--muted) / 0.4);
+  background: hsl(var(--muted) / 0.25);
+}
+
+.nemaline-table tbody tr:nth-child(even):hover {
+  background: hsl(var(--muted) / 0.6);
 }
 
 .nemaline-table th.nemaline-th-right,
@@ -114,6 +184,7 @@
 }
 
 /* Column widths (with table-layout: fixed, first row defines width) */
+.nemaline-table col.col-collapse { width: 2.5em; }
 .nemaline-table col.col-id { width: 4em; }
 .nemaline-table col.col-cluster { width: 5em; }
 .nemaline-table col.col-genetic { width: 7em; }
@@ -123,3 +194,59 @@
 .nemaline-table col.col-dominant-hand { width: 7em; }
 .nemaline-table col.col-total-mfm { width: 5.5em; }
 .nemaline-table col.col-below-avg { width: 6em; }
+
+/* Nested MFM assessment events: part of parent row, indented */
+.nemaline-nested-row td {
+  border-bottom: 1px solid hsl(var(--border));
+  padding: 0 0.875rem 0.75rem 1.75rem;
+  vertical-align: top;
+  font-size: 0.875rem;
+  background: inherit;
+}
+
+.nemaline-nested-table {
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  font-family: inherit;
+  width: 100%;
+  max-width: 280px;
+  margin: 0;
+  border: none;
+  background: transparent;
+}
+
+.nemaline-nested-table .nemaline-nested-td {
+  padding: 0.25rem 0.75rem 0.25rem 0;
+  color: hsl(var(--foreground));
+  border: none;
+  text-align: left;
+  background: transparent;
+}
+
+.nemaline-nested-table .nemaline-nested-td:first-child {
+  padding-left: 0;
+  color: hsl(var(--muted-foreground));
+  font-weight: 500;
+}
+
+.nemaline-nested-table thead {
+  background: hsl(var(--muted) / 0.5);
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.nemaline-nested-table .nemaline-nested-th {
+  padding: 0.375rem 0.75rem 0.375rem 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+  text-align: left;
+  border: none;
+  background: transparent;
+}
+
+.nemaline-nested-table .nemaline-nested-th:first-child {
+  padding-left: 0;
+}

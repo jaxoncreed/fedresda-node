@@ -10,8 +10,8 @@ export const nemaline_myopathy_gistContext: LdoJsonldContext = {
     "@id": "@type",
     "@isCollection": true,
   },
-  Determination: {
-    "@id": "https://w3id.org/semanticarts/ns/ontology/gist/Determination",
+  Person: {
+    "@id": "https://w3id.org/semanticarts/ns/ontology/gist/Person",
     "@context": {
       type: {
         "@id": "@type",
@@ -21,21 +21,18 @@ export const nemaline_myopathy_gistContext: LdoJsonldContext = {
         "@id": "https://w3id.org/semanticarts/ns/ontology/gist/isIdentifiedBy",
         "@type": "@id",
       },
+      isCategorizedBy: {
+        "@id": "https://w3id.org/semanticarts/ns/ontology/gist/isCategorizedBy",
+        "@isCollection": true,
+      },
+      hasMagnitude: {
+        "@id": "https://w3id.org/semanticarts/ns/ontology/gist/hasMagnitude",
+        "@type": "@id",
+      },
       hasParticipant: {
         "@id": "https://w3id.org/semanticarts/ns/ontology/gist/hasParticipant",
         "@type": "@id",
-      },
-      produces: {
-        "@id": "https://w3id.org/semanticarts/ns/ontology/gist/produces",
-        "@type": "@id",
-      },
-      hasPart: {
-        "@id": "https://w3id.org/semanticarts/ns/ontology/gist/hasPart",
-        "@type": "@id",
         "@isCollection": true,
-      },
-      isCategorizedBy: {
-        "@id": "https://w3id.org/semanticarts/ns/ontology/gist/isCategorizedBy",
       },
     },
   },
@@ -60,42 +57,27 @@ export const nemaline_myopathy_gistContext: LdoJsonldContext = {
     "@id": "https://w3id.org/semanticarts/ns/ontology/gist/uniqueText",
     "@type": "http://www.w3.org/2001/XMLSchema#string",
   },
-  hasParticipant: {
-    "@id": "https://w3id.org/semanticarts/ns/ontology/gist/hasParticipant",
-    "@type": "@id",
-  },
-  Person: {
-    "@id": "https://w3id.org/semanticarts/ns/ontology/gist/Person",
-    "@context": {
-      type: {
-        "@id": "@type",
-        "@isCollection": true,
-      },
-      isCategorizedBy: {
-        "@id": "https://w3id.org/semanticarts/ns/ontology/gist/isCategorizedBy",
-        "@isCollection": true,
-      },
-      hasMagnitude: {
-        "@id": "https://w3id.org/semanticarts/ns/ontology/gist/hasMagnitude",
-        "@type": "@id",
-        "@isCollection": true,
-      },
-    },
-  },
   isCategorizedBy: {
     "@id": "https://w3id.org/semanticarts/ns/ontology/gist/isCategorizedBy",
     "@isCollection": true,
   },
-  C1: "https://paediatrics.ox.ac.uk/terms/C1",
-  C2: "https://paediatrics.ox.ac.uk/terms/C2",
-  C3: "https://paediatrics.ox.ac.uk/terms/C3",
-  variant1: "https://paediatrics.ox.ac.uk/terms/variant1",
-  variant2: "https://paediatrics.ox.ac.uk/terms/variant2",
-  variant3: "https://paediatrics.ox.ac.uk/terms/variant3",
-  Left: "https://paediatrics.ox.ac.uk/terms/Left",
-  Right: "https://paediatrics.ox.ac.uk/terms/Right",
-  Ambulant: "https://paediatrics.ox.ac.uk/terms/Ambulant",
-  NonAmbulant: "https://paediatrics.ox.ac.uk/terms/Non-Ambulant",
+  Cluster1: "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Cluster_1",
+  Cluster2: "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Cluster_2",
+  Cluster3: "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Cluster_3",
+  GeneticGroupVariant1:
+    "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/GeneticGroup_Variant1",
+  GeneticGroupVariant2:
+    "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/GeneticGroup_Variant2",
+  GeneticGroupVariant3:
+    "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/GeneticGroup_Variant3",
+  LeftHanded: "https://paediatrics.ox.ac.uk/terms/LeftHanded",
+  RightHanded: "https://paediatrics.ox.ac.uk/terms/RightHanded",
+  StatusAmbulant:
+    "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Status_Ambulant",
+  StatusNonAmbulant:
+    "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Status_NonAmbulant",
+  PerformanceBelowAverage:
+    "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Performance_BelowAverage",
   hasMagnitude: {
     "@id": "https://w3id.org/semanticarts/ns/ontology/gist/hasMagnitude",
     "@type": "@id",
@@ -111,6 +93,10 @@ export const nemaline_myopathy_gistContext: LdoJsonldContext = {
         "@id": "https://w3id.org/semanticarts/ns/ontology/gist/hasAspect",
         "@isCollection": true,
       },
+      hasUnitOfMeasure: {
+        "@id":
+          "https://w3id.org/semanticarts/ns/ontology/gist/hasUnitOfMeasure",
+      },
       numericValue: {
         "@id": "https://w3id.org/semanticarts/ns/ontology/gist/numericValue",
         "@type": "http://www.w3.org/2001/XMLSchema#decimal",
@@ -121,12 +107,52 @@ export const nemaline_myopathy_gistContext: LdoJsonldContext = {
     "@id": "https://w3id.org/semanticarts/ns/ontology/gist/hasAspect",
     "@isCollection": true,
   },
-  AspectAgeOfOnset: "https://paediatrics.ox.ac.uk/terms/Aspect_AgeOfOnset",
+  AspectAge: "https://w3id.org/semanticarts/ns/ontology/gist/Aspect_Age",
+  hasUnitOfMeasure: {
+    "@id": "https://w3id.org/semanticarts/ns/ontology/gist/hasUnitOfMeasure",
+  },
+  UnitYear: "https://w3id.org/semanticarts/ns/ontology/gist/Unit_Year",
   numericValue: {
     "@id": "https://w3id.org/semanticarts/ns/ontology/gist/numericValue",
     "@type": "http://www.w3.org/2001/XMLSchema#decimal",
   },
-  AspectAge: "https://paediatrics.ox.ac.uk/terms/Aspect_Age",
+  AspectAgeAtLossOfAmbulation:
+    "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Aspect_AgeAtLossOfAmbulation",
+  AspectMFM32AggregateScore:
+    "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Aspect_MFM32_AggregateScore",
+  hasParticipant: {
+    "@id": "https://w3id.org/semanticarts/ns/ontology/gist/hasParticipant",
+    "@type": "@id",
+    "@isCollection": true,
+  },
+  Determination: {
+    "@id": "https://w3id.org/semanticarts/ns/ontology/gist/Determination",
+    "@context": {
+      type: {
+        "@id": "@type",
+        "@isCollection": true,
+      },
+      isCategorizedBy: {
+        "@id": "https://w3id.org/semanticarts/ns/ontology/gist/isCategorizedBy",
+      },
+      hasMagnitude: {
+        "@id": "https://w3id.org/semanticarts/ns/ontology/gist/hasMagnitude",
+        "@type": "@id",
+      },
+      hasParticipant: {
+        "@id": "https://w3id.org/semanticarts/ns/ontology/gist/hasParticipant",
+        "@type": "@id",
+      },
+      produces: {
+        "@id": "https://w3id.org/semanticarts/ns/ontology/gist/produces",
+        "@type": "@id",
+      },
+    },
+  },
+  AssessmentTypeMFM32:
+    "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/AssessmentType_MFM32",
+  AspectDurationSinceStudyEnrollment:
+    "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Aspect_DurationSinceStudyEnrollment",
   produces: {
     "@id": "https://w3id.org/semanticarts/ns/ontology/gist/produces",
     "@type": "@id",
@@ -138,28 +164,8 @@ export const nemaline_myopathy_gistContext: LdoJsonldContext = {
         "@id": "@type",
         "@isCollection": true,
       },
-      hasMagnitude: {
-        "@id": "https://w3id.org/semanticarts/ns/ontology/gist/hasMagnitude",
-        "@type": "@id",
-      },
-    },
-  },
-  AspectTotalMFM: "https://paediatrics.ox.ac.uk/terms/Aspect_TotalMFM",
-  hasPart: {
-    "@id": "https://w3id.org/semanticarts/ns/ontology/gist/hasPart",
-    "@type": "@id",
-    "@isCollection": true,
-  },
-  Event: {
-    "@id": "https://w3id.org/semanticarts/ns/ontology/gist/Event",
-    "@context": {
-      type: {
-        "@id": "@type",
-        "@isCollection": true,
-      },
-      produces: {
-        "@id": "https://w3id.org/semanticarts/ns/ontology/gist/produces",
-        "@type": "@id",
+      isAbout: {
+        "@id": "https://w3id.org/semanticarts/ns/ontology/gist/isAbout",
       },
       hasMagnitude: {
         "@id": "https://w3id.org/semanticarts/ns/ontology/gist/hasMagnitude",
@@ -167,7 +173,11 @@ export const nemaline_myopathy_gistContext: LdoJsonldContext = {
       },
     },
   },
-  AspectMFMSubScore: "https://paediatrics.ox.ac.uk/terms/Aspect_MFM_SubScore",
-  AspectTimeOffset: "https://paediatrics.ox.ac.uk/terms/Aspect_TimeOffset",
-  BelowAverage: "https://paediatrics.ox.ac.uk/terms/BelowAverage",
+  isAbout: {
+    "@id": "https://w3id.org/semanticarts/ns/ontology/gist/isAbout",
+  },
+  ConceptMotorFunction:
+    "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Concept_MotorFunction",
+  AspectMFM32VisitScore:
+    "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Aspect_MFM32_VisitScore",
 };

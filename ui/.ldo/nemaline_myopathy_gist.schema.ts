@@ -9,67 +9,7 @@ export const nemaline_myopathy_gistSchema: Schema = {
   type: "Schema",
   shapes: [
     {
-      id: "https://paediatrics.ox.ac.uk/terms/AssessmentEventShape",
-      type: "ShapeDecl",
-      shapeExpr: {
-        type: "Shape",
-        expression: {
-          type: "EachOf",
-          expressions: [
-            {
-              type: "TripleConstraint",
-              predicate: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
-              valueExpr: {
-                type: "NodeConstraint",
-                values: [
-                  "https://w3id.org/semanticarts/ns/ontology/gist/Determination",
-                ],
-              },
-            },
-            {
-              type: "TripleConstraint",
-              predicate:
-                "https://w3id.org/semanticarts/ns/ontology/gist/isIdentifiedBy",
-              valueExpr: "https://paediatrics.ox.ac.uk/terms/IDShape",
-            },
-            {
-              type: "TripleConstraint",
-              predicate:
-                "https://w3id.org/semanticarts/ns/ontology/gist/hasParticipant",
-              valueExpr: "https://paediatrics.ox.ac.uk/terms/SubjectShape",
-            },
-            {
-              type: "TripleConstraint",
-              predicate:
-                "https://w3id.org/semanticarts/ns/ontology/gist/produces",
-              valueExpr: "https://paediatrics.ox.ac.uk/terms/TotalScoreResult",
-            },
-            {
-              type: "TripleConstraint",
-              predicate:
-                "https://w3id.org/semanticarts/ns/ontology/gist/hasPart",
-              valueExpr:
-                "https://paediatrics.ox.ac.uk/terms/TaskPerformanceShape",
-              min: 5,
-              max: 5,
-            },
-            {
-              type: "TripleConstraint",
-              predicate:
-                "https://w3id.org/semanticarts/ns/ontology/gist/isCategorizedBy",
-              valueExpr: {
-                type: "NodeConstraint",
-                values: ["https://paediatrics.ox.ac.uk/terms/BelowAverage"],
-              },
-              min: 0,
-              max: 1,
-            },
-          ],
-        },
-      },
-    },
-    {
-      id: "https://paediatrics.ox.ac.uk/terms/SubjectShape",
+      id: "https://paediatrics.ox.ac.uk/terms/PersonShape",
       type: "ShapeDecl",
       shapeExpr: {
         type: "Shape",
@@ -89,13 +29,19 @@ export const nemaline_myopathy_gistSchema: Schema = {
             {
               type: "TripleConstraint",
               predicate:
+                "https://w3id.org/semanticarts/ns/ontology/gist/isIdentifiedBy",
+              valueExpr: "https://paediatrics.ox.ac.uk/terms/IDShape",
+            },
+            {
+              type: "TripleConstraint",
+              predicate:
                 "https://w3id.org/semanticarts/ns/ontology/gist/isCategorizedBy",
               valueExpr: {
                 type: "NodeConstraint",
                 values: [
-                  "https://paediatrics.ox.ac.uk/terms/C1",
-                  "https://paediatrics.ox.ac.uk/terms/C2",
-                  "https://paediatrics.ox.ac.uk/terms/C3",
+                  "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Cluster_1",
+                  "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Cluster_2",
+                  "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Cluster_3",
                 ],
               },
             },
@@ -106,9 +52,9 @@ export const nemaline_myopathy_gistSchema: Schema = {
               valueExpr: {
                 type: "NodeConstraint",
                 values: [
-                  "https://paediatrics.ox.ac.uk/terms/variant1",
-                  "https://paediatrics.ox.ac.uk/terms/variant2",
-                  "https://paediatrics.ox.ac.uk/terms/variant3",
+                  "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/GeneticGroup_Variant1",
+                  "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/GeneticGroup_Variant2",
+                  "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/GeneticGroup_Variant3",
                 ],
               },
             },
@@ -119,8 +65,8 @@ export const nemaline_myopathy_gistSchema: Schema = {
               valueExpr: {
                 type: "NodeConstraint",
                 values: [
-                  "https://paediatrics.ox.ac.uk/terms/Left",
-                  "https://paediatrics.ox.ac.uk/terms/Right",
+                  "https://paediatrics.ox.ac.uk/terms/LeftHanded",
+                  "https://paediatrics.ox.ac.uk/terms/RightHanded",
                 ],
               },
               min: 0,
@@ -133,10 +79,30 @@ export const nemaline_myopathy_gistSchema: Schema = {
               valueExpr: {
                 type: "NodeConstraint",
                 values: [
-                  "https://paediatrics.ox.ac.uk/terms/Ambulant",
-                  "https://paediatrics.ox.ac.uk/terms/Non-Ambulant",
+                  "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Status_Ambulant",
+                  "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Status_NonAmbulant",
                 ],
               },
+            },
+            {
+              type: "TripleConstraint",
+              predicate:
+                "https://w3id.org/semanticarts/ns/ontology/gist/isCategorizedBy",
+              valueExpr: {
+                type: "NodeConstraint",
+                values: [
+                  "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Performance_BelowAverage",
+                ],
+              },
+              min: 0,
+              max: 1,
+            },
+            {
+              type: "TripleConstraint",
+              predicate:
+                "https://w3id.org/semanticarts/ns/ontology/gist/hasMagnitude",
+              valueExpr:
+                "https://paediatrics.ox.ac.uk/terms/BaselineAgeMagnitude",
             },
             {
               type: "TripleConstraint",
@@ -150,15 +116,26 @@ export const nemaline_myopathy_gistSchema: Schema = {
               type: "TripleConstraint",
               predicate:
                 "https://w3id.org/semanticarts/ns/ontology/gist/hasMagnitude",
+              valueExpr: "https://paediatrics.ox.ac.uk/terms/TotalMFMMagnitude",
+              min: 0,
+              max: 1,
+            },
+            {
+              type: "TripleConstraint",
+              inverse: true,
+              predicate:
+                "https://w3id.org/semanticarts/ns/ontology/gist/hasParticipant",
               valueExpr:
-                "https://paediatrics.ox.ac.uk/terms/AgeAtAssessmentMagnitude",
+                "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/MFMAssessmentEventShape",
+              min: 0,
+              max: -1,
             },
           ],
         },
       },
     },
     {
-      id: "https://paediatrics.ox.ac.uk/terms/TaskPerformanceShape",
+      id: "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/MFMAssessmentEventShape",
       type: "ShapeDecl",
       shapeExpr: {
         type: "Shape",
@@ -171,30 +148,47 @@ export const nemaline_myopathy_gistSchema: Schema = {
               valueExpr: {
                 type: "NodeConstraint",
                 values: [
-                  "https://w3id.org/semanticarts/ns/ontology/gist/Event",
+                  "https://w3id.org/semanticarts/ns/ontology/gist/Determination",
                 ],
               },
+            },
+            {
+              type: "TripleConstraint",
+              predicate:
+                "https://w3id.org/semanticarts/ns/ontology/gist/isCategorizedBy",
+              valueExpr: {
+                type: "NodeConstraint",
+                values: [
+                  "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/AssessmentType_MFM32",
+                ],
+              },
+            },
+            {
+              type: "TripleConstraint",
+              predicate:
+                "https://w3id.org/semanticarts/ns/ontology/gist/hasMagnitude",
+              valueExpr:
+                "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/TimeFromBaselineMagnitude",
+            },
+            {
+              type: "TripleConstraint",
+              predicate:
+                "https://w3id.org/semanticarts/ns/ontology/gist/hasParticipant",
+              valueExpr: "https://paediatrics.ox.ac.uk/terms/PersonShape",
             },
             {
               type: "TripleConstraint",
               predicate:
                 "https://w3id.org/semanticarts/ns/ontology/gist/produces",
               valueExpr:
-                "https://paediatrics.ox.ac.uk/terms/TaskPerformanceProduces",
-            },
-            {
-              type: "TripleConstraint",
-              predicate:
-                "https://w3id.org/semanticarts/ns/ontology/gist/hasMagnitude",
-              valueExpr:
-                "https://paediatrics.ox.ac.uk/terms/TimeOffsetMagnitude",
+                "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/AssessmentResult",
             },
           ],
         },
       },
     },
     {
-      id: "https://paediatrics.ox.ac.uk/terms/TaskPerformanceProduces",
+      id: "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/AssessmentResult",
       type: "ShapeDecl",
       shapeExpr: {
         type: "Shape",
@@ -214,16 +208,27 @@ export const nemaline_myopathy_gistSchema: Schema = {
             {
               type: "TripleConstraint",
               predicate:
+                "https://w3id.org/semanticarts/ns/ontology/gist/isAbout",
+              valueExpr: {
+                type: "NodeConstraint",
+                values: [
+                  "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Concept_MotorFunction",
+                ],
+              },
+            },
+            {
+              type: "TripleConstraint",
+              predicate:
                 "https://w3id.org/semanticarts/ns/ontology/gist/hasMagnitude",
               valueExpr:
-                "https://paediatrics.ox.ac.uk/terms/MFMSubScoreMagnitude",
+                "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/MFMScoreMagnitude",
             },
           ],
         },
       },
     },
     {
-      id: "https://paediatrics.ox.ac.uk/terms/TotalScoreResult",
+      id: "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/TimeFromBaselineMagnitude",
       type: "ShapeDecl",
       shapeExpr: {
         type: "Shape",
@@ -236,15 +241,82 @@ export const nemaline_myopathy_gistSchema: Schema = {
               valueExpr: {
                 type: "NodeConstraint",
                 values: [
-                  "https://w3id.org/semanticarts/ns/ontology/gist/Content",
+                  "https://w3id.org/semanticarts/ns/ontology/gist/Magnitude",
                 ],
               },
             },
             {
               type: "TripleConstraint",
               predicate:
-                "https://w3id.org/semanticarts/ns/ontology/gist/hasMagnitude",
-              valueExpr: "https://paediatrics.ox.ac.uk/terms/TotalMFMMagnitude",
+                "https://w3id.org/semanticarts/ns/ontology/gist/hasAspect",
+              valueExpr: {
+                type: "NodeConstraint",
+                values: [
+                  "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Aspect_DurationSinceStudyEnrollment",
+                ],
+              },
+            },
+            {
+              type: "TripleConstraint",
+              predicate:
+                "https://w3id.org/semanticarts/ns/ontology/gist/hasUnitOfMeasure",
+              valueExpr: {
+                type: "NodeConstraint",
+                values: [
+                  "https://w3id.org/semanticarts/ns/ontology/gist/Unit_Year",
+                ],
+              },
+            },
+            {
+              type: "TripleConstraint",
+              predicate:
+                "https://w3id.org/semanticarts/ns/ontology/gist/numericValue",
+              valueExpr: {
+                type: "NodeConstraint",
+                datatype: "http://www.w3.org/2001/XMLSchema#decimal",
+              },
+            },
+          ],
+        },
+      },
+    },
+    {
+      id: "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/MFMScoreMagnitude",
+      type: "ShapeDecl",
+      shapeExpr: {
+        type: "Shape",
+        expression: {
+          type: "EachOf",
+          expressions: [
+            {
+              type: "TripleConstraint",
+              predicate: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+              valueExpr: {
+                type: "NodeConstraint",
+                values: [
+                  "https://w3id.org/semanticarts/ns/ontology/gist/Magnitude",
+                ],
+              },
+            },
+            {
+              type: "TripleConstraint",
+              predicate:
+                "https://w3id.org/semanticarts/ns/ontology/gist/hasAspect",
+              valueExpr: {
+                type: "NodeConstraint",
+                values: [
+                  "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Aspect_MFM32_VisitScore",
+                ],
+              },
+            },
+            {
+              type: "TripleConstraint",
+              predicate:
+                "https://w3id.org/semanticarts/ns/ontology/gist/numericValue",
+              valueExpr: {
+                type: "NodeConstraint",
+                datatype: "http://www.w3.org/2001/XMLSchema#integer",
+              },
             },
           ],
         },
@@ -274,7 +346,9 @@ export const nemaline_myopathy_gistSchema: Schema = {
                 "https://w3id.org/semanticarts/ns/ontology/gist/hasAspect",
               valueExpr: {
                 type: "NodeConstraint",
-                values: ["https://paediatrics.ox.ac.uk/terms/Aspect_TotalMFM"],
+                values: [
+                  "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Aspect_MFM32_AggregateScore",
+                ],
               },
             },
             {
@@ -283,7 +357,7 @@ export const nemaline_myopathy_gistSchema: Schema = {
                 "https://w3id.org/semanticarts/ns/ontology/gist/numericValue",
               valueExpr: {
                 type: "NodeConstraint",
-                datatype: "http://www.w3.org/2001/XMLSchema#decimal",
+                datatype: "http://www.w3.org/2001/XMLSchema#integer",
               },
             },
           ],
@@ -291,36 +365,7 @@ export const nemaline_myopathy_gistSchema: Schema = {
       },
     },
     {
-      id: "https://paediatrics.ox.ac.uk/terms/IDShape",
-      type: "ShapeDecl",
-      shapeExpr: {
-        type: "Shape",
-        expression: {
-          type: "EachOf",
-          expressions: [
-            {
-              type: "TripleConstraint",
-              predicate: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
-              valueExpr: {
-                type: "NodeConstraint",
-                values: ["https://w3id.org/semanticarts/ns/ontology/gist/ID"],
-              },
-            },
-            {
-              type: "TripleConstraint",
-              predicate:
-                "https://w3id.org/semanticarts/ns/ontology/gist/uniqueText",
-              valueExpr: {
-                type: "NodeConstraint",
-                datatype: "http://www.w3.org/2001/XMLSchema#string",
-              },
-            },
-          ],
-        },
-      },
-    },
-    {
-      id: "https://paediatrics.ox.ac.uk/terms/AgeAtAssessmentMagnitude",
+      id: "https://paediatrics.ox.ac.uk/terms/BaselineAgeMagnitude",
       type: "ShapeDecl",
       shapeExpr: {
         type: "Shape",
@@ -343,7 +388,20 @@ export const nemaline_myopathy_gistSchema: Schema = {
                 "https://w3id.org/semanticarts/ns/ontology/gist/hasAspect",
               valueExpr: {
                 type: "NodeConstraint",
-                values: ["https://paediatrics.ox.ac.uk/terms/Aspect_Age"],
+                values: [
+                  "https://w3id.org/semanticarts/ns/ontology/gist/Aspect_Age",
+                ],
+              },
+            },
+            {
+              type: "TripleConstraint",
+              predicate:
+                "https://w3id.org/semanticarts/ns/ontology/gist/hasUnitOfMeasure",
+              valueExpr: {
+                type: "NodeConstraint",
+                values: [
+                  "https://w3id.org/semanticarts/ns/ontology/gist/Unit_Year",
+                ],
               },
             },
             {
@@ -384,7 +442,18 @@ export const nemaline_myopathy_gistSchema: Schema = {
               valueExpr: {
                 type: "NodeConstraint",
                 values: [
-                  "https://paediatrics.ox.ac.uk/terms/Aspect_AgeOfOnset",
+                  "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Aspect_AgeAtLossOfAmbulation",
+                ],
+              },
+            },
+            {
+              type: "TripleConstraint",
+              predicate:
+                "https://w3id.org/semanticarts/ns/ontology/gist/hasUnitOfMeasure",
+              valueExpr: {
+                type: "NodeConstraint",
+                values: [
+                  "https://w3id.org/semanticarts/ns/ontology/gist/Unit_Year",
                 ],
               },
             },
@@ -402,7 +471,7 @@ export const nemaline_myopathy_gistSchema: Schema = {
       },
     },
     {
-      id: "https://paediatrics.ox.ac.uk/terms/MFMSubScoreMagnitude",
+      id: "https://paediatrics.ox.ac.uk/terms/IDShape",
       type: "ShapeDecl",
       shapeExpr: {
         type: "Shape",
@@ -414,71 +483,16 @@ export const nemaline_myopathy_gistSchema: Schema = {
               predicate: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
               valueExpr: {
                 type: "NodeConstraint",
-                values: [
-                  "https://w3id.org/semanticarts/ns/ontology/gist/Magnitude",
-                ],
+                values: ["https://w3id.org/semanticarts/ns/ontology/gist/ID"],
               },
             },
             {
               type: "TripleConstraint",
               predicate:
-                "https://w3id.org/semanticarts/ns/ontology/gist/hasAspect",
+                "https://w3id.org/semanticarts/ns/ontology/gist/uniqueText",
               valueExpr: {
                 type: "NodeConstraint",
-                values: [
-                  "https://paediatrics.ox.ac.uk/terms/Aspect_MFM_SubScore",
-                ],
-              },
-            },
-            {
-              type: "TripleConstraint",
-              predicate:
-                "https://w3id.org/semanticarts/ns/ontology/gist/numericValue",
-              valueExpr: {
-                type: "NodeConstraint",
-                datatype: "http://www.w3.org/2001/XMLSchema#decimal",
-              },
-            },
-          ],
-        },
-      },
-    },
-    {
-      id: "https://paediatrics.ox.ac.uk/terms/TimeOffsetMagnitude",
-      type: "ShapeDecl",
-      shapeExpr: {
-        type: "Shape",
-        expression: {
-          type: "EachOf",
-          expressions: [
-            {
-              type: "TripleConstraint",
-              predicate: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
-              valueExpr: {
-                type: "NodeConstraint",
-                values: [
-                  "https://w3id.org/semanticarts/ns/ontology/gist/Magnitude",
-                ],
-              },
-            },
-            {
-              type: "TripleConstraint",
-              predicate:
-                "https://w3id.org/semanticarts/ns/ontology/gist/hasAspect",
-              valueExpr: {
-                type: "NodeConstraint",
-                values: [
-                  "https://paediatrics.ox.ac.uk/terms/Aspect_TimeOffset",
-                ],
-              },
-            },
-            {
-              type: "TripleConstraint",
-              predicate:
-                "https://w3id.org/semanticarts/ns/ontology/gist/numericValue",
-              valueExpr: {
-                type: "NodeConstraint",
-                datatype: "http://www.w3.org/2001/XMLSchema#decimal",
+                datatype: "http://www.w3.org/2001/XMLSchema#string",
               },
             },
           ],

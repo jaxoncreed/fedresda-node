@@ -10,3 +10,4 @@ old-data
 infra/hosts
 infra/secrets.yml
 dev/
+.cursor
