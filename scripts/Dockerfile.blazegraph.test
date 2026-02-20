@@ -1,0 +1,15 @@
+# Multi-arch Blazegraph (native on both amd64 and arm64/Apple Silicon)
+# Use 2.1.6 RC: executable jar works with Java 9+ (2.1.5 has NPE at StandaloneNanoSparqlServer:142)
+FROM eclipse-temurin:11-jre
+
+ENV BLAZEGRAPH_VERSION=BLAZEGRAPH_2_1_6_RC
+ENV BLAZEGRAPH_JAR_URL=https://github.com/blazegraph/database/releases/download/${BLAZEGRAPH_VERSION}/blazegraph.jar
+
+RUN apt-get update && apt-get install -y --no-install-recommends curl && \
+    curl -sSL -o /blazegraph.jar "$BLAZEGRAPH_JAR_URL" && \
+    apt-get purge -y curl && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
+
+EXPOSE 8080
+
+# Run on port 8080; bind to 0.0.0.0 so Docker/host can connect (default is localhost-only)
+CMD ["java", "-server", "-Xmx1g", "-Dfile.encoding=UTF-8", "-Dsun.jnu.encoding=UTF-8", "-DJETTY_PORT=8080", "-Djetty.host=0.0.0.0", "-jar", "/blazegraph.jar"]

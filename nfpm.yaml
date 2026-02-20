@@ -9,12 +9,10 @@ vendor: "SetMeld"
 homepage: "https://setmeld.com"
 license: "MIT"
 description: |
-  SetMeld Pod: Community Solid Server + Git over SSH (git-shell).
+  SetMeld Pod: Community Solid Server.
 
 # We vendor Node, so no nodejs dependency.
 depends:
-  - openssh-server
-  - git
   - curl
   - npm
 
@@ -38,11 +36,9 @@ contents:
     dst: /usr/lib/setmeld-pod/runtime
     expand: true
 
-  # systemd units (your ExecStart should call /usr/bin/setmeld-pod)
+  # systemd units (ExecStart calls /usr/bin/setmeld-pod)
   - src: ./scripts/debScripts/setmeld-pod-node.service
     dst: /lib/systemd/system/setmeld-pod-node.service
-  - src: ./scripts/debScripts/setmeld-pod-git-sshd.service
-    dst: /lib/systemd/system/setmeld-pod-git-sshd.service
   - src: ./scripts/debScripts/setmeld-pod.target
     dst: /lib/systemd/system/setmeld-pod.target
 

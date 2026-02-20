@@ -43,7 +43,7 @@ if check_node_arch "amd64"; then
     echo "Using existing Node.js runtime for amd64"
 else
     echo "Downloading Node.js for amd64..."
-    TARGETARCH=amd64 bash scripts/fetch-node.sh
+    TARGETARCH=amd64 bash scripts/bundle/fetch-node.sh
 fi
 
 # Update version in nfpm config
@@ -58,7 +58,7 @@ if check_node_arch "arm64"; then
     echo "Using existing Node.js runtime for arm64"
 else
     echo "Downloading Node.js for arm64..."
-    TARGETARCH=arm64 bash scripts/fetch-node.sh
+    TARGETARCH=arm64 bash scripts/bundle/fetch-node.sh
 fi
 
 # Update version in nfpm config

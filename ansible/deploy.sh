@@ -11,44 +11,59 @@ NC='\033[0m'
 
 echo -e "${BLUE}🚀 SetMeld Pod Deployment${NC}"
 
-# Check arguments
-if [ $# -lt 2 ]; then
-    echo "Usage: $0 <server> <domain> [port] [--ssl]"
+# Parse flags and positional args
+SSL_ENABLED=
+SSL_EMAIL=
+POSITIONAL=()
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --ssl)
+            SSL_ENABLED=1
+            shift
+            ;;
+        --ssl-email)
+            SSL_EMAIL="$2"
+            shift 2
+            ;;
+        *)
+            POSITIONAL+=("$1")
+            shift
+            ;;
+    esac
+done
+
+if [ ${#POSITIONAL[@]} -lt 2 ]; then
+    echo "Usage: $0 [--ssl] [--ssl-email EMAIL] <server> <domain> [port]"
     echo "Example: $0 user@myserver.com myserver.com 80"
-    echo "Example: $0 user@myserver.com myserver.com 443 --ssl"
+    echo "         $0 --ssl --ssl-email admin@myserver.com user@myserver.com myserver.com"
+    echo ""
+    echo "Options:"
+    echo "  --ssl           Configure HTTPS with Let's Encrypt (Certbot)"
+    echo "  --ssl-email E   Email for Let's Encrypt expiry notices (required with --ssl)"
     echo ""
     echo "Note: <server> can be:"
     echo "  - user@hostname (e.g., jackson@192.168.1.100)"
     echo "  - hostname (e.g., myserver.com)"
     echo "  - SSH alias (e.g., sandbox) - from ~/.ssh/config"
-    echo ""
-    echo "Options:"
-    echo "  --ssl    Enable SSL with Let's Encrypt (requires port 80 to be open)"
     exit 1
 fi
 
-SERVER=$1
-BASE_URL=$2
-PORT=${3:-80}
-SSL_ENABLED=false
+SERVER="${POSITIONAL[0]}"
+BASE_URL="${POSITIONAL[1]}"
+PORT="${POSITIONAL[2]:-80}"
 
-# Check for SSL flag
-if [[ "$*" == *"--ssl"* ]]; then
-    SSL_ENABLED=true
-    if [ "$PORT" != "443" ] && [ "$PORT" != "80" ]; then
-        echo "Warning: SSL is enabled but port is not 80 or 443. Setting port to 443."
-        PORT=443
-    fi
+if [ -n "$SSL_ENABLED" ] && [ -z "$SSL_EMAIL" ]; then
+    echo -e "${RED}❌ --ssl requires an email for Let's Encrypt. Use --ssl-email you@example.com${NC}"
+    exit 1
 fi
 
 # Use the server parameter directly - let SSH handle aliases and config
-# This preserves SSH aliases, config files, and custom connection settings
 SSH_CONNECTION="$SERVER"
 
 echo -e "${BLUE}📋 Deploying to: $SERVER${NC}"
 echo -e "${BLUE}🌐 Domain: $BASE_URL${NC}"
 echo -e "${BLUE}🔌 Port: $PORT${NC}"
-echo -e "${BLUE}🔒 SSL: $SSL_ENABLED${NC}"
+[ -n "$SSL_ENABLED" ] && echo -e "${BLUE}🔒 SSL: Certbot (Let's Encrypt)${NC}"
 
 # Check if Ansible is installed
 if ! command -v ansible-playbook &> /dev/null; then
@@ -59,31 +74,56 @@ if ! command -v ansible-playbook &> /dev/null; then
 fi
 
 # Create simple inventory
+if [ -n "$SSL_ENABLED" ]; then
 cat > inventory-temp.yml << EOF
 all:
   hosts:
     myserver:
       ansible_host: $SSH_CONNECTION
       base_url: $BASE_URL
-      enable_https: $SSL_ENABLED
+      nginx_port: $PORT
+      ssl_enabled: true
+      ssl_email: "$SSL_EMAIL"
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    ansible_become: yes
+    ansible_become_method: sudo
+EOF
+else
+cat > inventory-temp.yml << EOF
+all:
+  hosts:
+    myserver:
+      ansible_host: $SSH_CONNECTION
+      base_url: $BASE_URL
       nginx_port: $PORT
   vars:
     ansible_python_interpreter: /usr/bin/python3
     ansible_become: yes
     ansible_become_method: sudo
 EOF
+fi
 
 echo -e "${BLUE}📜 Running deployment...${NC}"
+echo "   (Use -vv or -vvv for more detail if it hangs or fails)"
+echo ""
 
-# Run deployment
-if ansible-playbook -i inventory-temp.yml deploy.yml; then
+# Pass SSL as extra vars so they always take effect (highest precedence)
+EXTRA_VARS=()
+if [ -n "$SSL_ENABLED" ]; then
+    EXTRA_VARS+=(-e "ssl_enabled=true" -e "ssl_email=$SSL_EMAIL")
+fi
+
+# Run deployment with verbose so you can see which task is running (helps find where it hangs)
+if ansible-playbook -i inventory-temp.yml deploy.yml -v "${EXTRA_VARS[@]}"; then
     echo -e "${GREEN}✅ Deployment successful!${NC}"
-    if [ "$SSL_ENABLED" = true ]; then
-        echo -e "${GREEN}🌐 Your SetMeld Pod is now accessible at: https://$BASE_URL${NC}"
+    if [ -n "$SSL_ENABLED" ]; then
+        echo -e "${GREEN}🌐 Your SetMeld Pod is available at: https://$BASE_URL${NC}"
+    elif [ "$PORT" = "80" ]; then
+        echo -e "${GREEN}🌐 Your SetMeld Pod is available at: http://$BASE_URL${NC}"
     else
-        echo -e "${GREEN}🌐 Your SetMeld Pod is now accessible at: http://$BASE_URL:$PORT${NC}"
+        echo -e "${GREEN}🌐 Your SetMeld Pod is available at: http://$BASE_URL:$PORT${NC}"
     fi
-    echo -e "${GREEN}🔑 Git operations: ssh://setmeld@$BASE_URL:2222/path/to/repo${NC}"
 else
     echo -e "${RED}❌ Deployment failed!${NC}"
     exit 1
