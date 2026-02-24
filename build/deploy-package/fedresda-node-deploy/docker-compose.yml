@@ -1,0 +1,76 @@
+# SetMeld Pod — Docker Compose
+# All behaviour is driven by .env. See .env.example and README.md.
+
+services:
+  # ---------------------------------------------------------------------------
+  # Node application (Community Solid Server). Exposed only to 127.0.0.1 by
+  # default so it is reached via the bundled nginx or your own proxy.
+  # ---------------------------------------------------------------------------
+  node-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: setmeld-pod-node:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - TRUST_PROXY=${TRUST_PROXY:-false}
+      - TRIPLESTORE_URL=${TRIPLESTORE_URL:-}
+      - BASE_URL=${BASE_URL:-http://localhost:3000}
+    volumes:
+      - ${HOST_DATA_DIR:-./data}:/app/data
+    # Expose only to loopback when using the bundled nginx; change to "3000:3000"
+    # if you use your own proxy and want to reach the app from the host.
+    ports:
+      - "127.0.0.1:${NODE_APP_PORT:-3000}:3000"
+    # When using bundled triplestore (--profile bundled-triplestore), start
+    # triplestore first; the app entrypoint waits for it when TRIPLESTORE_URL
+    # is unset. No depends_on here so you can run without the profile when
+    # using your own TRIPLESTORE_URL.
+
+  # ---------------------------------------------------------------------------
+  # Bundled triplestore (Blazegraph). Only start when not using TRIPLESTORE_URL.
+  # Run: docker compose --profile bundled-triplestore up -d
+  # When using your own triplestore, run: docker compose up -d (no profile).
+  # ---------------------------------------------------------------------------
+  triplestore:
+    build:
+      context: .
+      dockerfile: Dockerfile.triplestore
+    image: setmeld-pod-triplestore:latest
+    restart: unless-stopped
+    profiles:
+      - bundled-triplestore
+    volumes:
+      - triplestore-data:/var/blazegraph
+    # Expose only to host loopback; node-app reaches it via internal network.
+    ports:
+      - "127.0.0.1:9999:9999"
+
+  # ---------------------------------------------------------------------------
+  # Optional: Nginx reverse proxy. Comment out this service to use your own
+  # proxy (e.g. corporate F5). See proxy-examples/custom-nginx.conf.
+  # ---------------------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - BASE_URL=${BASE_URL:-http://localhost:3000}
+      - SSL_MODE=${SSL_MODE:-none}
+      - NGINX_HTTP_PORT=${NGINX_HTTP_PORT:-80}
+      - NGINX_HTTPS_PORT=${NGINX_HTTPS_PORT:-443}
+      - NGINX_SERVER_NAME=${NGINX_SERVER_NAME:-}
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx/templates/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./nginx/entrypoint.sh:/docker-entrypoint.d/10-ssl-mode.sh:ro
+    # Mount custom certs when SSL_MODE=custom (optional)
+    # - /path/on/host/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - node-app
+
+volumes:
+  triplestore-data:

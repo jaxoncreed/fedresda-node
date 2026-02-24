@@ -1,7 +1,0 @@
-[Unit]
-Description=SetMeld Pod (Community Solid Server)
-Requires=setmeld-pod-node.service
-BindsTo=setmeld-pod-node.service
-
-[Install]
-WantedBy=multi-user.target
