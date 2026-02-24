@@ -36,14 +36,6 @@ EOF
     sed -i.bak "s/\"version\": \"[^\"]*\"/\"version\": \"$new_version\"/" package.json
     rm -f package.json.bak
     
-    # Update nfpm.yaml
-    sed -i.bak "s/version: \"[^\"]*\"/version: \"$new_version\"/" nfpm.yaml
-    rm -f nfpm.yaml.bak
-    
-    # Update ansible deploy.yml
-    sed -i.bak "s/setmeld_pod_version: \"[^\"]*\"/setmeld_pod_version: \"$new_version\"/" ansible/deploy.yml
-    rm -f ansible/deploy.yml.bak
-    
     # Update URLs in config files (extract major version and set minor/patch to 0)
     local major_version
     if [[ "$new_version" =~ ^([0-9]+)\. ]]; then

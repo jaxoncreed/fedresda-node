@@ -1,6 +1,5 @@
-# Node.js bundling artifacts
+# Build and deploy package output
 vendor
-./bundle
 *.deb
 
 node_modules
