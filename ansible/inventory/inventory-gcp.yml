@@ -1,0 +1,24 @@
+# GCP Compute Engine – SetMeld Pod deployment
+# Required: ansible_host, ansible_user, base_url
+# Optional: nginx_port, ssl_enabled, ssl_email, ansible_ssh_private_key_file, pod_ready_timeout_seconds
+
+all:
+  hosts:
+    myserver:
+      ansible_host: 136.115.16.92
+      ansible_user: jackson
+      ansible_ssh_private_key_file: ~/.ssh/id_rsa
+
+      # Deployment (required)
+      base_url: sandbox.setmeld.com # domain or IP for nginx + CSS_BASE_URL
+
+      # Deployment (optional – playbook defaults shown)
+      nginx_port: 80
+      ssl_enabled: true
+      ssl_email: jackson@setmeld.com # required when ssl_enabled
+      # pod_ready_timeout_seconds: 600   # increase for slow/low-RAM instances
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    ansible_become: yes
+    ansible_become_method: sudo

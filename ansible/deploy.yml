@@ -9,8 +9,10 @@
     triplestore_container_port: 9999   # 2.1.6 RC jar listens on 9999, path /blazegraph/sparql
     triplestore_host_port: 8889
     triplestore_data_path: "/var/lib/setmeld/blazegraph"
-    ssl_enabled: false
+    nginx_port: 80          # override in inventory
+    ssl_enabled: false      # override in inventory for HTTPS
     ssl_cert_ready: false   # set true after Certbot when ssl_enabled
+    pod_ready_timeout_seconds: 600   # override in inventory for slow instances
 
   tasks:
     - name: Set deployment variables
@@ -288,10 +290,10 @@
         - setmeld-pod.target
         - nginx
 
-    # Verify deployment (Blazegraph 90s; pod can take 3–5 min on small instances)
+    # Verify deployment (Blazegraph 90s; pod can take 5–10 min on small instances)
     - name: "→ Phase: Waiting for services (nginx, pod, Blazegraph)"
       debug:
-        msg: "Checking that ports are open (pod up to 5 min – CSS component loading is slow)..."
+        msg: "Checking that ports are open (pod up to {{ pod_ready_timeout_seconds }}s – CSS component loading is slow on small instances)..."
 
     - name: Wait for services to be ready
       block:
@@ -303,7 +305,7 @@
             timeout: "{{ item.timeout | default(60) }}"
           loop:
             - { port: "{{ nginx_port }}", timeout: 60 }
-            - { port: "3000", timeout: 300 }   # SetMeld Pod (CSS discovery + loading often 3+ min)
+            - { port: "3000", timeout: "{{ pod_ready_timeout_seconds }}" }   # SetMeld Pod (CSS discovery + loading)
             - { port: "{{ triplestore_host_port }}", timeout: 90 }   # Blazegraph (Java)
         - name: Wait for HTTPS port when SSL enabled
           wait_for:
@@ -331,7 +333,7 @@
           when: pod_logs.stdout is defined
         - name: Fail with clear message
           fail:
-            msg: "One or more services did not become ready (often port 3000). Check pod status/logs above. On low-RAM instances, increase swap or retry after a few minutes."
+            msg: "One or more services did not become ready (often port 3000). Check pod status/logs above. On small/slow instances, increase swap, retry the playbook, or pass a longer timeout: -e pod_ready_timeout_seconds=900"
           when: true
 
     - name: Display success message

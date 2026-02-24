@@ -1,9 +1,8 @@
 #!/bin/bash
 
-# Simple SetMeld Pod deployment script
+# SetMeld Pod deployment – all configuration via inventory file.
 set -e
 
-# Colors
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 RED='\033[0;31m'
@@ -11,123 +10,77 @@ NC='\033[0m'
 
 echo -e "${BLUE}🚀 SetMeld Pod Deployment${NC}"
 
-# Parse flags and positional args
-SSL_ENABLED=
-SSL_EMAIL=
-POSITIONAL=()
+INVENTORY=
+
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --ssl)
-            SSL_ENABLED=1
-            shift
-            ;;
-        --ssl-email)
-            SSL_EMAIL="$2"
-            shift 2
+        -*)
+            echo -e "${RED}❌ Unknown option: $1${NC}"
+            exit 1
             ;;
         *)
-            POSITIONAL+=("$1")
+            if [ -n "$INVENTORY" ]; then
+                echo -e "${RED}❌ Single inventory file required. Found: $INVENTORY and $1${NC}"
+                exit 1
+            fi
+            INVENTORY="$1"
             shift
             ;;
     esac
 done
 
-if [ ${#POSITIONAL[@]} -lt 2 ]; then
-    echo "Usage: $0 [--ssl] [--ssl-email EMAIL] <server> <domain> [port]"
-    echo "Example: $0 user@myserver.com myserver.com 80"
-    echo "         $0 --ssl --ssl-email admin@myserver.com user@myserver.com myserver.com"
+if [ -z "$INVENTORY" ]; then
+    echo "Usage: $0 <inventory.yml>"
     echo ""
-    echo "Options:"
-    echo "  --ssl           Configure HTTPS with Let's Encrypt (Certbot)"
-    echo "  --ssl-email E   Email for Let's Encrypt expiry notices (required with --ssl)"
+    echo "  <inventory.yml>   Path to Ansible inventory (required)."
+    echo "                   All deployment options (base_url, nginx_port, ssl_enabled, etc.)"
+    echo "                   are set in the inventory file."
     echo ""
-    echo "Note: <server> can be:"
-    echo "  - user@hostname (e.g., jackson@192.168.1.100)"
-    echo "  - hostname (e.g., myserver.com)"
-    echo "  - SSH alias (e.g., sandbox) - from ~/.ssh/config"
+    echo "Example:"
+    echo "  $0 ansible/inventory/inventory-gcp.yml"
     exit 1
 fi
 
-SERVER="${POSITIONAL[0]}"
-BASE_URL="${POSITIONAL[1]}"
-PORT="${POSITIONAL[2]:-80}"
-
-if [ -n "$SSL_ENABLED" ] && [ -z "$SSL_EMAIL" ]; then
-    echo -e "${RED}❌ --ssl requires an email for Let's Encrypt. Use --ssl-email you@example.com${NC}"
+if [ ! -f "$INVENTORY" ]; then
+    echo -e "${RED}❌ Inventory file not found: $INVENTORY${NC}"
     exit 1
 fi
 
-# Use the server parameter directly - let SSH handle aliases and config
-SSH_CONNECTION="$SERVER"
+# Resolve inventory to absolute path so we can cd to script dir and still find it
+if [[ "$INVENTORY" != /* ]]; then
+    INVENTORY="$(cd "$(dirname "$INVENTORY")" 2>/dev/null && pwd)/$(basename "$INVENTORY")"
+fi
+# Run from ansible dir so deploy.yml and ../bundle resolve correctly
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
 
-echo -e "${BLUE}📋 Deploying to: $SERVER${NC}"
-echo -e "${BLUE}🌐 Domain: $BASE_URL${NC}"
-echo -e "${BLUE}🔌 Port: $PORT${NC}"
-[ -n "$SSL_ENABLED" ] && echo -e "${BLUE}🔒 SSL: Certbot (Let's Encrypt)${NC}"
+echo -e "${BLUE}📂 Inventory: $INVENTORY${NC}"
 
-# Check if Ansible is installed
+# Use OVH the-bastion-ansible-wrapper when the inventory defines bastion_* variables
+if grep -qE 'bastion_host|bastion_user|bastion_port' "$INVENTORY" 2>/dev/null; then
+    if [ -f "$SCRIPT_DIR/ansible-bastion.cfg" ]; then
+        export ANSIBLE_CONFIG="$SCRIPT_DIR/ansible-bastion.cfg"
+        export BASTION_ANSIBLE_INV_OPTIONS="-i $INVENTORY"
+        echo -e "${BLUE}🔐 Using bastion wrapper (ansible-bastion.cfg)${NC}"
+    else
+        echo -e "${RED}❌ Inventory has bastion_* vars but ansible-bastion.cfg not found.${NC}"
+        exit 1
+    fi
+fi
+
 if ! command -v ansible-playbook &> /dev/null; then
-    echo -e "${RED}❌ Ansible not found. Install with:${NC}"
-    echo "  # macOS: brew install ansible"
-    echo "  # Ubuntu: sudo apt install ansible"
+    echo -e "${RED}❌ Ansible not found. Install with: brew install ansible  (macOS) or sudo apt install ansible  (Ubuntu)${NC}"
     exit 1
-fi
-
-# Create simple inventory
-if [ -n "$SSL_ENABLED" ]; then
-cat > inventory-temp.yml << EOF
-all:
-  hosts:
-    myserver:
-      ansible_host: $SSH_CONNECTION
-      base_url: $BASE_URL
-      nginx_port: $PORT
-      ssl_enabled: true
-      ssl_email: "$SSL_EMAIL"
-  vars:
-    ansible_python_interpreter: /usr/bin/python3
-    ansible_become: yes
-    ansible_become_method: sudo
-EOF
-else
-cat > inventory-temp.yml << EOF
-all:
-  hosts:
-    myserver:
-      ansible_host: $SSH_CONNECTION
-      base_url: $BASE_URL
-      nginx_port: $PORT
-  vars:
-    ansible_python_interpreter: /usr/bin/python3
-    ansible_become: yes
-    ansible_become_method: sudo
-EOF
 fi
 
 echo -e "${BLUE}📜 Running deployment...${NC}"
-echo "   (Use -vv or -vvv for more detail if it hangs or fails)"
+echo "   (-vv shows connection/setup activity; -vvv adds SSH-level debug)"
 echo ""
 
-# Pass SSL as extra vars so they always take effect (highest precedence)
-EXTRA_VARS=()
-if [ -n "$SSL_ENABLED" ]; then
-    EXTRA_VARS+=(-e "ssl_enabled=true" -e "ssl_email=$SSL_EMAIL")
-fi
-
-# Run deployment with verbose so you can see which task is running (helps find where it hangs)
-if ansible-playbook -i inventory-temp.yml deploy.yml -v "${EXTRA_VARS[@]}"; then
+if ansible-playbook -i "$INVENTORY" deploy.yml -vv; then
     echo -e "${GREEN}✅ Deployment successful!${NC}"
-    if [ -n "$SSL_ENABLED" ]; then
-        echo -e "${GREEN}🌐 Your SetMeld Pod is available at: https://$BASE_URL${NC}"
-    elif [ "$PORT" = "80" ]; then
-        echo -e "${GREEN}🌐 Your SetMeld Pod is available at: http://$BASE_URL${NC}"
-    else
-        echo -e "${GREEN}🌐 Your SetMeld Pod is available at: http://$BASE_URL:$PORT${NC}"
-    fi
+    echo -e "${GREEN}   Access URL is in your inventory (base_url, nginx_port, ssl_enabled).${NC}"
 else
     echo -e "${RED}❌ Deployment failed!${NC}"
     exit 1
 fi
-
-# Clean up
-rm inventory-temp.yml

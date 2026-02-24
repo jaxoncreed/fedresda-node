@@ -1,55 +1,44 @@
-# SetMeld Pod Ansible Deployment
+# SetMeld Pod – Ansible deploy
 
-Simple Ansible deployment for SetMeld Pod with Nginx and Blazegraph triplestore. CSS, triplestore, and reverse proxy.
+Deploy SetMeld Pod (Nginx, Blazegraph, app) using Ansible. All configuration lives in the **inventory file**; there are no command-line flags.
 
-## Quick Start
+## Usage
 
-### 1. Install Ansible
+From the repo root:
 
 ```bash
-# macOS
-brew install ansible
-
-# Ubuntu/Debian
-sudo apt update && sudo apt install ansible
+./ansible/deploy.sh <inventory.yml>
 ```
 
-### 2. Deploy
+Example:
 
 ```bash
-# Basic deployment (port 80)
-./deploy.sh user@myserver.com myserver.com
-
-# Custom port
-./deploy.sh user@myserver.com myserver.com 8080
-
-# Using SSH alias from ~/.ssh/config
-./deploy.sh sandbox myserver.com
-```
-
-## What It Does
-
-1. **Installs SetMeld Pod** – Copies and installs the .deb package
-2. **Installs Docker + Blazegraph** – Builds Blazegraph 2.1.6 RC (multi-arch) and runs it on port 8889; pod uses `http://127.0.0.1:8889/blazegraph/sparql` – SPARQL triplestore (port 8889) for pod data storage; Blazegraph uses a unified endpoint compatible with CSS (Oxigraph’s separate `/query` and `/update` causes 415 errors)
-3. **Installs Nginx** – Reverse proxy
-4. **Configures Nginx** – Proxies traffic to the app (port 3000)
-5. **Sets config.env** – CSS_BASE_URL and CSS_SPARQL_ENDPOINT
-6. **Starts services** – Triplestore, app, and Nginx
-
-## Manual Ansible
-
-```bash
-ansible-playbook -i inventory.yml deploy.yml
-
-# With custom variables
-ansible-playbook -i inventory.yml deploy.yml \
-  -e "base_url=myserver.com" \
-  -e "nginx_port=8080"
+./ansible/deploy.sh ansible/inventory/inventory-gcp.yml
 ```
 
 ## Inventory
 
-Edit `inventory.yml`:
+Copy and edit an inventory file from `ansible/inventory/`. Each file defines hosts, connection settings, and deployment variables.
+
+### Connection (required)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ansible_host` | Yes* | IP or hostname to SSH to (*unless the host key is the real hostname) |
+| `ansible_user` | Yes | SSH user |
+| `ansible_ssh_private_key_file` | No | Path to SSH key (default: `~/.ssh/id_rsa`) |
+
+### Deployment
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `base_url` | Yes | – | Domain or IP for nginx and CSS_BASE_URL (must match how users reach the pod) |
+| `nginx_port` | No | 80 | HTTP port |
+| `ssl_enabled` | No | false | Use Let's Encrypt for HTTPS |
+| `ssl_email` | When ssl | – | Email for Let's Encrypt (required if `ssl_enabled: true`) |
+| `pod_ready_timeout_seconds` | No | 600 | Wait time for port 3000 (increase for slow instances) |
+
+### Example
 
 ```yaml
 all:
@@ -58,23 +47,36 @@ all:
       ansible_host: 192.168.1.100
       ansible_user: ubuntu
       ansible_ssh_private_key_file: ~/.ssh/id_rsa
+
       base_url: myserver.com
       nginx_port: 80
+      ssl_enabled: true
+      ssl_email: you@example.com
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    ansible_become: yes
+    ansible_become_method: sudo
 ```
 
-## HTTPS (Let's Encrypt)
+See `inventory/inventory-gcp.yml` and `inventory/inventory-uliege.yml` for full examples (including jump hosts).
 
-Use the **`--ssl`** flag to configure HTTPS with Certbot (Let's Encrypt). You must provide an email for expiry notices and use a **domain name** (not an IP); the domain must point to the server. Port 80 is used for the ACME challenge.
+## Prerequisites
 
-```bash
-./deploy.sh --ssl --ssl-email you@example.com user@myserver.com myserver.com
-```
+- Ansible: `brew install ansible` (macOS) or `sudo apt install ansible` (Ubuntu)
+- `.deb` package: run `npm run bundle` from the repo root before deploying
 
-Without `--ssl`, the playbook configures HTTP only.
+## What the playbook does
+
+1. Installs the SetMeld Pod `.deb`
+2. Installs Docker and runs Blazegraph (SPARQL triplestore on port 8889)
+3. Installs and configures Nginx as reverse proxy to the app (port 3000)
+4. Sets `config.env` (CSS_BASE_URL, CSS_SPARQL_ENDPOINT) and starts services
 
 ## Troubleshooting
 
-- **"Welcome to nginx!" instead of the pod** – Re-run the playbook so nginx restarts with the SetMeld config, or on the server run `sudo systemctl restart nginx`.
-- **SSH failed** – Check key permissions, server reachability
-- **Package missing** – Run `npm run bundle` first to build the .deb
-- **Permission denied** – Ensure user has sudo access
+- **Nginx shows default page** – Re-run the playbook or on the server: `sudo systemctl restart nginx`
+- **SSH errors** – Check `ansible_host`, keys, and any proxy/jump settings in the inventory
+- **Missing .deb** – Run `npm run bundle` from the repo root
+- **Permission denied** – Ensure the Ansible user has sudo on the target host
+- **Deployment fails at “Wait for ports” (port 3000)** – The pod can take 5–10 minutes on small instances. Add `pod_ready_timeout_seconds: 900` (or higher) in the inventory vars.
