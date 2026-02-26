@@ -69,9 +69,9 @@ SetMeld Pod is shipped as a **Docker Compose deployment package**: a single `.ta
    wget https://github.com/jaxoncreed/fedresda-node/raw/refs/heads/main/build/fedresda-node-deploy-0.0.1-alpha.4.tar.gz
    tar -xzf fedresda-node-deploy-0.0.1-alpha.4.tar.gz
    cd fedresda-node-deploy
-   cp .env.example .env
-   # Edit .env (BASE_URL, HOST_DATA_DIR, TRUST_PROXY, TRIPLESTORE_URL, etc.)
-   docker compose --profile bundled-triplestore up -d
+   ./deploy.sh init
+   # Edit config.env (triplestore/proxy/tls modes and related options)
+   ./deploy.sh up
    ```
 
 Full details, SSL options, and proxy examples are in **[deploy/README.md](./deploy/README.md)**.
@@ -86,7 +86,7 @@ The Node app (Community Solid Server) supports:
 - **TRIPLESTORE_URL** — SPARQL endpoint. Leave unset in the deploy package to use the bundled Blazegraph; set to your own URL to use an existing triplestore.
 - **BASE_URL** — Public base URL of the app (e.g. `https://pod.mycompany.internal`).
 
-All deployment configuration is driven by the `.env` file in the deploy package (see `deploy/.env.example`).
+All deployment configuration is driven by `config.env` in the deploy package (see `deploy/config.env.example`).
 
 ## Architecture
 

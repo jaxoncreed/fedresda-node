@@ -29,9 +29,19 @@ const outPath = path.join(repoRoot, "build", outName);
 const tarTopDir = "fedresda-node-deploy";
 
 const entries = [
-  { from: deployDir, to: ".", names: [".env.example", "README.md", "docker-compose.yml", "Dockerfile", "Dockerfile.triplestore", "entrypoint.sh"] },
-  { from: path.join(deployDir, "nginx"), to: "nginx", names: ["entrypoint.sh"] },
-  { from: path.join(deployDir, "nginx", "templates"), to: "nginx/templates", names: ["default.conf.template"] },
+  {
+    from: deployDir,
+    to: ".",
+    names: [
+      "config.env.example",
+      "README.md",
+      "docker-compose.yml",
+      "deploy.sh",
+      "Dockerfile",
+      "Dockerfile.triplestore",
+      "entrypoint.sh",
+    ],
+  },
   { from: path.join(deployDir, "proxy-examples"), to: "proxy-examples", names: ["custom-nginx.conf"] },
   { from: path.join(deployDir, "docs"), to: "docs", names: ["server-trust-proxy-snippet.md"] },
 ];
@@ -46,9 +56,11 @@ const fromRepo = [
 ];
 
 function copyFile(src, dst) {
+  const st = fs.statSync(src);
   const dir = path.dirname(dst);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   fs.copyFileSync(src, dst);
+  fs.chmodSync(dst, st.mode);
 }
 
 function copyRecursive(src, dst) {
@@ -58,6 +70,7 @@ function copyRecursive(src, dst) {
     const dir = path.dirname(dst);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     fs.copyFileSync(src, dst);
+    fs.chmodSync(dst, st.mode);
     return;
   }
   if (!fs.existsSync(dst)) fs.mkdirSync(dst, { recursive: true });
