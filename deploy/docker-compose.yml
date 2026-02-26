@@ -67,6 +67,7 @@ services:
     volumes:
       - ./nginx/templates/default.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./nginx/entrypoint.sh:/docker-entrypoint.d/10-ssl-mode.sh:ro
+      - ./nginx/25-ssl-envsubst.sh:/docker-entrypoint.d/25-ssl-envsubst.sh:ro
     # Mount custom certs when SSL_MODE=custom (optional)
     # - /path/on/host/ssl:/etc/nginx/ssl:ro
     depends_on:
