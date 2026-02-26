@@ -5,6 +5,7 @@ SetMeld Pod: A Solid Pod with tools for deploying data integrations.
 ## Prerequisites
 
 ### Development
+
 - Node.js ≥ 18
 - Git
 - OpenSSH (dev: `/usr/sbin/sshd` available on macOS & Linux)
@@ -56,14 +57,17 @@ The version is defined in `version.json` and synchronized to `package.json` and 
 SetMeld Pod is shipped as a **Docker Compose deployment package**: a single `.tar.gz` file that contains the app, compose file, and configuration. No Ansible or system packages required.
 
 1. **Build the package** (from this repo):
+
    ```bash
    npm run deploy:package
    ```
+
    This produces `build/fedresda-node-deploy-<version>.tar.gz`.
 
 2. **On the target server**: copy the tarball (e.g. via `wget` or SCP), then:
    ```bash
-   tar -xzf fedresda-node-deploy-*.tar.gz
+   wget https://github.com/jaxoncreed/fedresda-node/raw/refs/heads/main/build/fedresda-node-deploy-0.0.1-alpha.4.tar.gz
+   tar -xzf fedresda-node-deploy-0.0.1-alpha.4.tar.gz
    cd fedresda-node-deploy
    cp .env.example .env
    # Edit .env (BASE_URL, HOST_DATA_DIR, TRUST_PROXY, TRIPLESTORE_URL, etc.)
@@ -94,12 +98,12 @@ All deployment configuration is driven by the `.env` file in the deploy package 
 
 ### Development vs Production
 
-| Aspect       | Development | Production (Docker)   |
-|-------------|-------------|------------------------|
-| CSS Port    | 3000        | 3000 (in container)    |
-| Git Port    | 2229        | Configurable           |
-| Data Dir    | `./data`    | `HOST_DATA_DIR` in .env|
-| Proxy       | None        | Nginx or your own      |
+| Aspect   | Development | Production (Docker)     |
+| -------- | ----------- | ----------------------- |
+| CSS Port | 3000        | 3000 (in container)     |
+| Git Port | 2229        | Configurable            |
+| Data Dir | `./data`    | `HOST_DATA_DIR` in .env |
+| Proxy    | None        | Nginx or your own       |
 
 ## License
 
