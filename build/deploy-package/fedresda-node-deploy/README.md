@@ -28,11 +28,11 @@ This package provides an on-premise, enterprise-grade deployment of SetMeld Pod 
 4. **Optional: Disable bundled Nginx**
    - If you use your own reverse proxy, comment out the `nginx` service in `docker-compose.yml` and expose the `node-app` port as needed. See `proxy-examples/custom-nginx.conf` for a reference config.
 
-5. **Ensure Nginx helper is executable** (needed when using the bundled Nginx)
+5. **Ensure Nginx entrypoint scripts are executable** (needed when using the bundled Nginx)
    ```bash
-   chmod +x nginx/entrypoint.sh
+   chmod +x nginx/entrypoint.sh nginx/25-ssl-envsubst.sh
    ```
-   This script sets `NGINX_SERVER_NAME` from `BASE_URL` and SSL-related variables. If it is not executable, Nginx may fail with an invalid `server_name` directive.
+   These set `NGINX_SERVER_NAME` from `BASE_URL` and substitute SSL-related variables into the config. If they are not executable, Nginx may fail (e.g. invalid `server_name` or unknown `${SSL_LINE_PREFIX}` directive).
 
 6. **Start the stack**
    - **Using the bundled triplestore** (default; leave `TRIPLESTORE_URL` empty):
@@ -67,9 +67,9 @@ When you receive a new `fedresda-node-deploy-*.tar.gz` (e.g. a version bump):
    - If you extracted over the old deploy: your existing `.env` is unchanged; compare with `.env.example` for any new variables.
    - If you extracted into a new directory: copy your saved `.env` into the new directory, or copy `.env.example` to `.env` and re-apply your values.
 
-4. **Make the Nginx entrypoint executable** (needed for SSL_MODE and for deriving `NGINX_SERVER_NAME` from `BASE_URL`):
+4. **Make the Nginx entrypoint scripts executable:**
    ```bash
-   chmod +x nginx/entrypoint.sh
+   chmod +x nginx/entrypoint.sh nginx/25-ssl-envsubst.sh
    ```
 
 5. **Rebuild and restart**
