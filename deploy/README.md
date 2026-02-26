@@ -28,7 +28,13 @@ This package provides an on-premise, enterprise-grade deployment of SetMeld Pod 
 4. **Optional: Disable bundled Nginx**
    - If you use your own reverse proxy, comment out the `nginx` service in `docker-compose.yml` and expose the `node-app` port as needed. See `proxy-examples/custom-nginx.conf` for a reference config.
 
-5. **Start the stack**
+5. **Ensure Nginx helper is executable** (needed when using the bundled Nginx)
+   ```bash
+   chmod +x nginx/entrypoint.sh
+   ```
+   This script sets `NGINX_SERVER_NAME` from `BASE_URL` and SSL-related variables. If it is not executable, Nginx may fail with an invalid `server_name` directive.
+
+6. **Start the stack**
    - **Using the bundled triplestore** (default; leave `TRIPLESTORE_URL` empty):
      ```bash
      docker compose --profile bundled-triplestore up -d
@@ -38,6 +44,47 @@ This package provides an on-premise, enterprise-grade deployment of SetMeld Pod 
      docker compose up -d
      ```
    The application should be running in under two minutes.
+
+---
+
+## Deploying After Downloading an Updated Tar
+
+When you receive a new `fedresda-node-deploy-*.tar.gz` (e.g. a version bump):
+
+1. **Back up your data and config**
+   ```bash
+   cp .env .env.bak
+   # If you use the bundled triplestore, ensure HOST_DATA_DIR (e.g. ./data) is backed up or on a volume.
+   ```
+
+2. **Extract the new tar** into a new directory (or over the existing one if you prefer):
+   ```bash
+   tar -xzf fedresda-node-deploy-0.0.1-alpha.4.tar.gz
+   cd fedresda-node-deploy
+   ```
+
+3. **Restore or merge your `.env`**
+   - If you extracted over the old deploy: your existing `.env` is unchanged; compare with `.env.example` for any new variables.
+   - If you extracted into a new directory: copy your saved `.env` into the new directory, or copy `.env.example` to `.env` and re-apply your values.
+
+4. **Make the Nginx entrypoint executable** (needed for SSL_MODE and for deriving `NGINX_SERVER_NAME` from `BASE_URL`):
+   ```bash
+   chmod +x nginx/entrypoint.sh
+   ```
+
+5. **Rebuild and restart**
+   - **Bundled triplestore:**
+     ```bash
+     docker compose --profile bundled-triplestore build --pull
+     docker compose --profile bundled-triplestore up -d
+     ```
+   - **Your own triplestore:**
+     ```bash
+     docker compose build --pull
+     docker compose up -d
+     ```
+
+   Use `docker compose logs -f` if you need to confirm the app and Nginx started correctly.
 
 ---
 
