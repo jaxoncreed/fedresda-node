@@ -1,134 +1,68 @@
-# SetMeld Pod — Docker Compose Deployment
+# SetMeld Pod Deployment
 
-This package provides an on-premise, enterprise-grade deployment of SetMeld Pod using Docker Compose. It is designed for system administrators deploying behind corporate firewalls, often in offline or highly restricted environments.
+This deployment package is designed for a simple workflow:
 
-**Philosophy:** *Batteries included, but removable.* Everything is driven by a single, heavily commented `.env` file. No magic scripts, no GUI installers, no hardcoded configuration.
+1. Edit one config file (`config.env`)
+2. Run one script (`./deploy.sh up`)
 
----
+No manual Docker profile selection, no chmod steps, and no in-container Nginx template logic.
 
-## 5-Step Installation (Target Developer Experience)
+## Quick Start
 
-1. **Download and extract the package**
-   ```bash
-   tar -xzf fedresda-node-deploy-*.tar.gz
-   cd fedresda-node-deploy
-   ```
+```bash
+tar -xzf fedresda-node-deploy-*.tar.gz
+cd fedresda-node-deploy
+./deploy.sh init
+# edit config.env
+./deploy.sh up
+```
 
-2. **Copy the environment template**
-   ```bash
-   cp .env.example .env
-   ```
+## Configuration Model
 
-3. **Edit `.env` in plain text**
-   - Set your **BASE_URL** (e.g. `https://pod.mycompany.internal`).
-   - Set **HOST_DATA_DIR** to your data volume or NFS mount (e.g. `/mnt/nfs/setmeld-data`).
-   - If you are behind a reverse proxy (F5, nginx, etc.), set **TRUST_PROXY=true**.
-   - To use your own triplestore, set **TRIPLESTORE_URL**. Leave it blank to use the bundled triplestore.
+All options live in `config.env`. Key switches:
 
-4. **Optional: Disable bundled Nginx**
-   - If you use your own reverse proxy, comment out the `nginx` service in `docker-compose.yml` and expose the `node-app` port as needed. See `proxy-examples/custom-nginx.conf` for a reference config.
+- `TRIPLESTORE_MODE=bundled|external`
+- `PROXY_MODE=nginx|external|none`
+- `TLS_MODE=none|custom|letsencrypt` (only when `PROXY_MODE=nginx`)
 
-5. **Ensure Nginx entrypoint scripts are executable** (needed when using the bundled Nginx)
-   ```bash
-   chmod +x nginx/entrypoint.sh nginx/25-ssl-envsubst.sh
-   ```
-   These set `NGINX_SERVER_NAME` from `BASE_URL` and substitute SSL-related variables into the config. If they are not executable, Nginx may fail (e.g. invalid `server_name` or unknown `${SSL_LINE_PREFIX}` directive).
+### Triplestore
 
-6. **Start the stack**
-   - **Using the bundled triplestore** (default; leave `TRIPLESTORE_URL` empty):
-     ```bash
-     docker compose --profile bundled-triplestore up -d
-     ```
-   - **Using your own triplestore** (set `TRIPLESTORE_URL` in `.env`):
-     ```bash
-     docker compose up -d
-     ```
-   The application should be running in under two minutes.
+- `bundled`: deploy bundled Blazegraph and wire app automatically.
+- `external`: set `EXTERNAL_TRIPLESTORE_URL` to your SPARQL endpoint.
 
----
+### Proxy
 
-## Deploying After Downloading an Updated Tar
+- `nginx`: deploy bundled Nginx.
+- `external`: do not run Nginx; use your own reverse proxy.
+- `none`: no proxy; app is exposed directly on `NODE_HOST_PORT`.
 
-When you receive a new `fedresda-node-deploy-*.tar.gz` (e.g. a version bump):
+### TLS
 
-1. **Back up your data and config**
-   ```bash
-   cp .env .env.bak
-   # If you use the bundled triplestore, ensure HOST_DATA_DIR (e.g. ./data) is backed up or on a volume.
-   ```
+- `none`: HTTP only.
+- `custom`: set `CUSTOM_CERT_FULLCHAIN` and `CUSTOM_CERT_PRIVKEY` to existing host PEM files.
+- `letsencrypt`: set `SSL_EMAIL`; script uses certbot and writes certs under `nginx/letsencrypt`.
 
-2. **Extract the new tar** into a new directory (or over the existing one if you prefer):
-   ```bash
-   tar -xzf fedresda-node-deploy-0.0.1-alpha.4.tar.gz
-   cd fedresda-node-deploy
-   ```
+## Operational Commands
 
-3. **Restore or merge your `.env`**
-   - If you extracted over the old deploy: your existing `.env` is unchanged; compare with `.env.example` for any new variables.
-   - If you extracted into a new directory: copy your saved `.env` into the new directory, or copy `.env.example` to `.env` and re-apply your values.
+```bash
+./deploy.sh up
+./deploy.sh down
+./deploy.sh restart
+./deploy.sh status
+./deploy.sh logs
+./deploy.sh renew-certs
+```
 
-4. **Make the Nginx entrypoint scripts executable:**
-   ```bash
-   chmod +x nginx/entrypoint.sh nginx/25-ssl-envsubst.sh
-   ```
+## Upgrade Flow
 
-5. **Rebuild and restart**
-   - **Bundled triplestore:**
-     ```bash
-     docker compose --profile bundled-triplestore build --pull
-     docker compose --profile bundled-triplestore up -d
-     ```
-   - **Your own triplestore:**
-     ```bash
-     docker compose build --pull
-     docker compose up -d
-     ```
-
-   Use `docker compose logs -f` if you need to confirm the app and Nginx started correctly.
-
----
+1. Back up your existing `config.env`.
+2. Extract the new tarball.
+3. Copy your `config.env` into the new folder and review diffs vs `config.env.example`.
+4. Run `./deploy.sh up`.
 
 ## Architecture
 
-| Component    | Role |
-|------------|------|
-| **node-app**   | Node.js application (Community Solid Server). Listens on port 3000 inside the container; by default exposed only on `127.0.0.1` when Nginx is used. |
-| **triplestore**| Optional. Bundled Blazegraph triplestore. Used only if `TRIPLESTORE_URL` is not set. |
-| **nginx**      | Optional. Reverse proxy and TLS termination. Can be disabled if you use your own proxy. |
-
-All configuration is via `.env`. No startup scripts run `npm install` or `apt-get`; the Node image is built once with dependencies included.
-
----
-
-## SSL Modes (when using bundled Nginx)
-
-Set **SSL_MODE** in `.env`:
-
-- **none** — HTTP only (port 80).
-- **custom** — HTTPS using your own certificates (set **SSL_CERT_PATH** and **SSL_KEY_PATH**).
-- **certbot** — TLS via Let’s Encrypt (requires public reachability and **SSL_EMAIL**).
-
----
-
-## Offline / Air-Gapped Deployment
-
-1. On a machine with network access: build images and save them:
-   ```bash
-   docker compose -f docker-compose.yml build
-   docker save -o node-app.tar <image-name-from-compose>
-   docker save -o triplestore.tar <triplestore-image-name>
-   # Copy .env.example, .env, docker-compose.yml, and the .tar files to the target.
-   ```
-2. On the target machine: load images and start:
-   ```bash
-   docker load -i node-app.tar
-   docker load -i triplestore.tar
-   # Adjust docker-compose.yml to use image: instead of build: if desired.
-   docker compose up -d
-   ```
-
----
-
-## Using Your Own Reverse Proxy
-
-See **proxy-examples/custom-nginx.conf** for a standalone Nginx configuration you can drop into your existing proxy. It routes to the Node app and sets `X-Forwarded-For` and `X-Forwarded-Proto` correctly. Ensure **TRUST_PROXY=true** in `.env` when using it.
+- `node-app`: Community Solid Server app container.
+- `triplestore`: optional bundled Blazegraph (`TRIPLESTORE_MODE=bundled`).
+- `nginx`: optional bundled reverse proxy (`PROXY_MODE=nginx`).
+- `certbot`: invoked by `deploy.sh` for Let's Encrypt issue/renew.
