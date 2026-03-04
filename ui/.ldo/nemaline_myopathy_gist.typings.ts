@@ -54,7 +54,7 @@ export interface Person {
   hasMagnitude?: LdSet<
     BaselineAgeMagnitude | LoAAgeMagnitude | TotalMFMMagnitude
   >;
-  hasParticipant?: LdSet<MFMAssessmentEvent>;
+  hasParticipant?: LdSet<MFMAssessmentEvent | KaplanMeierObservation>;
 }
 
 /**
@@ -72,6 +72,22 @@ export interface MFMAssessmentEvent {
   hasMagnitude: TimeFromBaselineMagnitude;
   hasParticipant: Person;
   produces: AssessmentResult;
+}
+
+/**
+ * KaplanMeierObservation Type
+ */
+export interface KaplanMeierObservation {
+  "@id"?: string;
+  "@context"?: LdoJsonldContext;
+  type: LdSet<{
+    "@id": "Determination";
+  }>;
+  isCategorizedBy: {
+    "@id": "AssessmentTypeKaplanMeier";
+  };
+  hasParticipant: Person;
+  hasMagnitude: LdSet<KaplanMeierEventMagnitude | KaplanMeierTimeMagnitude>;
 }
 
 /**
@@ -133,6 +149,39 @@ export interface TotalMFMMagnitude {
   }>;
   hasAspect: {
     "@id": "AspectMFM32AggregateScore";
+  };
+  numericValue: number;
+}
+
+/**
+ * KaplanMeierEventMagnitude Type
+ */
+export interface KaplanMeierEventMagnitude {
+  "@id"?: string;
+  "@context"?: LdoJsonldContext;
+  type: LdSet<{
+    "@id": "Magnitude";
+  }>;
+  hasAspect: {
+    "@id": "AspectKaplanMeierEventIndicator";
+  };
+  numericValue: number;
+}
+
+/**
+ * KaplanMeierTimeMagnitude Type
+ */
+export interface KaplanMeierTimeMagnitude {
+  "@id"?: string;
+  "@context"?: LdoJsonldContext;
+  type: LdSet<{
+    "@id": "Magnitude";
+  }>;
+  hasAspect: {
+    "@id": "AspectKaplanMeierTimeToEvent";
+  };
+  hasUnitOfMeasure: {
+    "@id": "UnitYear";
   };
   numericValue: number;
 }

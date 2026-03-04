@@ -4,10 +4,13 @@ import { nemaline_myopathy_gistContext } from "./nemaline_myopathy_gist.context"
 import {
   Person,
   MFMAssessmentEvent,
+  KaplanMeierObservation,
   AssessmentResult,
   TimeFromBaselineMagnitude,
   MFMScoreMagnitude,
   TotalMFMMagnitude,
+  KaplanMeierEventMagnitude,
+  KaplanMeierTimeMagnitude,
   BaselineAgeMagnitude,
   LoAAgeMagnitude,
   ID,
@@ -37,6 +40,17 @@ export const MFMAssessmentEventShapeType: ShapeType<MFMAssessmentEvent> = {
     "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/MFMAssessmentEventShape",
   context: nemaline_myopathy_gistContext,
 };
+
+/**
+ * KaplanMeierObservation ShapeType
+ */
+export const KaplanMeierObservationShapeType: ShapeType<KaplanMeierObservation> =
+  {
+    schema: nemaline_myopathy_gistSchema,
+    shape:
+      "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/KaplanMeierObservationShape",
+    context: nemaline_myopathy_gistContext,
+  };
 
 /**
  * AssessmentResult ShapeType
@@ -77,6 +91,26 @@ export const TotalMFMMagnitudeShapeType: ShapeType<TotalMFMMagnitude> = {
   shape: "https://paediatrics.ox.ac.uk/terms/TotalMFMMagnitude",
   context: nemaline_myopathy_gistContext,
 };
+
+/**
+ * KaplanMeierEventMagnitude ShapeType
+ */
+export const KaplanMeierEventMagnitudeShapeType: ShapeType<KaplanMeierEventMagnitude> =
+  {
+    schema: nemaline_myopathy_gistSchema,
+    shape: "https://paediatrics.ox.ac.uk/terms/KaplanMeierEventMagnitude",
+    context: nemaline_myopathy_gistContext,
+  };
+
+/**
+ * KaplanMeierTimeMagnitude ShapeType
+ */
+export const KaplanMeierTimeMagnitudeShapeType: ShapeType<KaplanMeierTimeMagnitude> =
+  {
+    schema: nemaline_myopathy_gistSchema,
+    shape: "https://paediatrics.ox.ac.uk/terms/KaplanMeierTimeMagnitude",
+    context: nemaline_myopathy_gistContext,
+  };
 
 /**
  * BaselineAgeMagnitude ShapeType

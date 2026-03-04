@@ -134,6 +134,7 @@ export const nemaline_myopathy_gistContext: LdoJsonldContext = {
       },
       isCategorizedBy: {
         "@id": "https://w3id.org/semanticarts/ns/ontology/gist/isCategorizedBy",
+        "@isCollection": true,
       },
       hasMagnitude: {
         "@id": "https://w3id.org/semanticarts/ns/ontology/gist/hasMagnitude",
@@ -180,4 +181,10 @@ export const nemaline_myopathy_gistContext: LdoJsonldContext = {
     "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Concept_MotorFunction",
   AspectMFM32VisitScore:
     "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Aspect_MFM32_VisitScore",
+  AssessmentTypeKaplanMeier:
+    "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/AssessmentType_KaplanMeier",
+  AspectKaplanMeierEventIndicator:
+    "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Aspect_KaplanMeierEventIndicator",
+  AspectKaplanMeierTimeToEvent:
+    "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Aspect_KaplanMeierTimeToEvent",
 };

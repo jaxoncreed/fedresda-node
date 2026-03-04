@@ -11,10 +11,13 @@ import { PersonShapeType } from '../.ldo/nemaline_myopathy_gist.shapeTypes';
 import type {
   Person,
   MFMAssessmentEvent,
+  KaplanMeierObservation,
   AssessmentResult,
   ID,
   BaselineAgeMagnitude,
   LoAAgeMagnitude,
+  KaplanMeierEventMagnitude,
+  KaplanMeierTimeMagnitude,
   TotalMFMMagnitude,
   TimeFromBaselineMagnitude,
   MFMScoreMagnitude,
@@ -46,6 +49,18 @@ function parseNum(s: string): number {
   return Number(t);
 }
 
+/** Parse ambulation status into a normalized boolean. */
+function isAmbulantStatus(status: string): boolean {
+  return status.trim().toLowerCase() === 'ambulant';
+}
+
+/** Last valid visit time from V1..V5; NaN when none are present. */
+function getLastObservedVisitTime(visitTimes: number[]): number {
+  const valid = visitTimes.filter((t) => !Number.isNaN(t));
+  if (valid.length === 0) return NaN;
+  return valid.reduce((max, t) => (t > max ? t : max), valid[0]);
+}
+
 /** CSV columns: row#, Id, Cluster, Baseline_Age, Genetic_Group, Baseline_loA_status,
  * LoA Age, Time_V1-5, MFM_V1-5, Dominant hand, total MFM, Below average */
 function rowToPerson(row: string[], baseUri: string): Omit<Person, '@context'> {
@@ -72,6 +87,7 @@ function rowToPerson(row: string[], baseUri: string): Omit<Person, '@context'> {
   const personUri = `${baseUri}#person-${id}`;
   const idUri = `${baseUri}#id-${id}`;
 
+  const ambulant = isAmbulantStatus(loaStatus);
   const categories = set<
     | { '@id': 'Cluster1' }
     | { '@id': 'Cluster2' }
@@ -91,13 +107,22 @@ function rowToPerson(row: string[], baseUri: string): Omit<Person, '@context'> {
   if (geneticGroup === 'variant1') categories.add({ '@id': 'GeneticGroupVariant1' });
   else if (geneticGroup === 'variant2') categories.add({ '@id': 'GeneticGroupVariant2' });
   else if (geneticGroup === 'variant3') categories.add({ '@id': 'GeneticGroupVariant3' });
-  categories.add(loaStatus === 'Ambulant' ? { '@id': 'StatusAmbulant' } : { '@id': 'StatusNonAmbulant' });
+  categories.add(ambulant ? { '@id': 'StatusAmbulant' } : { '@id': 'StatusNonAmbulant' });
   if (dominantHand === 'Left') categories.add({ '@id': 'LeftHanded' });
   if (dominantHand === 'Right') categories.add({ '@id': 'RightHanded' });
   if (belowAverage === 'below') categories.add({ '@id': 'PerformanceBelowAverage' });
 
+  const lastVisitTime = getLastObservedVisitTime([timeV1, timeV2, timeV3, timeV4, timeV5]);
+  const fallbackBaselineAge = Number.isNaN(baselineAge) ? 0 : baselineAge;
+  const kmEvent = ambulant ? 0 : 1;
+  const kmTime = ambulant
+    ? fallbackBaselineAge + (Number.isNaN(lastVisitTime) ? 0 : lastVisitTime)
+    : (Number.isNaN(loaAge) ? fallbackBaselineAge : loaAge);
+
   const magnitudes = set<
-    BaselineAgeMagnitude | LoAAgeMagnitude | TotalMFMMagnitude
+    BaselineAgeMagnitude |
+    LoAAgeMagnitude |
+    TotalMFMMagnitude
   >();
   magnitudes.add({
     '@id': `${baseUri}#baseline-age-${id}`,
@@ -132,7 +157,7 @@ function rowToPerson(row: string[], baseUri: string): Omit<Person, '@context'> {
     [timeV5, mfmV5],
   ];
 
-  const assessmentEvents = set<MFMAssessmentEvent>();
+  const hasParticipants = set<MFMAssessmentEvent | KaplanMeierObservation>();
   for (let v = 0; v < visits.length; v++) {
     const [time, mfm] = visits[v];
     const eventUri = `${baseUri}#assessment-${id}-v${v + 1}`;
@@ -166,8 +191,31 @@ function rowToPerson(row: string[], baseUri: string): Omit<Person, '@context'> {
       hasParticipant: { '@id': personUri } as Person,
       produces: result,
     };
-    assessmentEvents.add(event);
+    hasParticipants.add(event);
   }
+
+  const kmObservation: KaplanMeierObservation = {
+    '@id': `${baseUri}#km-observation-${id}`,
+    type: set({ '@id': 'Determination' }),
+    isCategorizedBy: { '@id': 'AssessmentTypeKaplanMeier' },
+    hasParticipant: { '@id': personUri } as Person,
+    hasMagnitude: set(
+      {
+        '@id': `${baseUri}#km-event-${id}`,
+        type: set({ '@id': 'Magnitude' }),
+        hasAspect: { '@id': 'AspectKaplanMeierEventIndicator' },
+        numericValue: kmEvent,
+      } as KaplanMeierEventMagnitude,
+      {
+        '@id': `${baseUri}#km-time-${id}`,
+        type: set({ '@id': 'Magnitude' }),
+        hasAspect: { '@id': 'AspectKaplanMeierTimeToEvent' },
+        hasUnitOfMeasure: { '@id': 'UnitYear' },
+        numericValue: kmTime,
+      } as KaplanMeierTimeMagnitude,
+    ),
+  };
+  hasParticipants.add(kmObservation);
 
   const person: Omit<Person, '@context'> = {
     '@id': personUri,
@@ -179,7 +227,7 @@ function rowToPerson(row: string[], baseUri: string): Omit<Person, '@context'> {
     } as ID,
     isCategorizedBy: categories,
     hasMagnitude: magnitudes,
-    hasParticipant: assessmentEvents,
+    hasParticipant: hasParticipants,
   };
 
   return person;

@@ -130,6 +130,16 @@ export const nemaline_myopathy_gistSchema: Schema = {
               min: 0,
               max: -1,
             },
+            {
+              type: "TripleConstraint",
+              inverse: true,
+              predicate:
+                "https://w3id.org/semanticarts/ns/ontology/gist/hasParticipant",
+              valueExpr:
+                "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/KaplanMeierObservationShape",
+              min: 0,
+              max: 1,
+            },
           ],
         },
       },
@@ -182,6 +192,59 @@ export const nemaline_myopathy_gistSchema: Schema = {
                 "https://w3id.org/semanticarts/ns/ontology/gist/produces",
               valueExpr:
                 "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/AssessmentResult",
+            },
+          ],
+        },
+      },
+    },
+    {
+      id: "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/KaplanMeierObservationShape",
+      type: "ShapeDecl",
+      shapeExpr: {
+        type: "Shape",
+        expression: {
+          type: "EachOf",
+          expressions: [
+            {
+              type: "TripleConstraint",
+              predicate: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+              valueExpr: {
+                type: "NodeConstraint",
+                values: [
+                  "https://w3id.org/semanticarts/ns/ontology/gist/Determination",
+                ],
+              },
+            },
+            {
+              type: "TripleConstraint",
+              predicate:
+                "https://w3id.org/semanticarts/ns/ontology/gist/isCategorizedBy",
+              valueExpr: {
+                type: "NodeConstraint",
+                values: [
+                  "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/AssessmentType_KaplanMeier",
+                ],
+              },
+            },
+            {
+              type: "TripleConstraint",
+              predicate:
+                "https://w3id.org/semanticarts/ns/ontology/gist/hasParticipant",
+              valueExpr: "https://paediatrics.ox.ac.uk/terms/PersonShape",
+            },
+            {
+              type: "TripleConstraint",
+              predicate:
+                "https://w3id.org/semanticarts/ns/ontology/gist/hasMagnitude",
+              valueExpr:
+                "https://paediatrics.ox.ac.uk/terms/KaplanMeierEventMagnitude",
+            },
+            {
+              type: "TripleConstraint",
+              predicate:
+                "https://w3id.org/semanticarts/ns/ontology/gist/hasMagnitude",
+              valueExpr:
+                "https://paediatrics.ox.ac.uk/terms/KaplanMeierTimeMagnitude",
             },
           ],
         },
@@ -358,6 +421,101 @@ export const nemaline_myopathy_gistSchema: Schema = {
               valueExpr: {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#integer",
+              },
+            },
+          ],
+        },
+      },
+    },
+    {
+      id: "https://paediatrics.ox.ac.uk/terms/KaplanMeierEventMagnitude",
+      type: "ShapeDecl",
+      shapeExpr: {
+        type: "Shape",
+        expression: {
+          type: "EachOf",
+          expressions: [
+            {
+              type: "TripleConstraint",
+              predicate: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+              valueExpr: {
+                type: "NodeConstraint",
+                values: [
+                  "https://w3id.org/semanticarts/ns/ontology/gist/Magnitude",
+                ],
+              },
+            },
+            {
+              type: "TripleConstraint",
+              predicate:
+                "https://w3id.org/semanticarts/ns/ontology/gist/hasAspect",
+              valueExpr: {
+                type: "NodeConstraint",
+                values: [
+                  "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Aspect_KaplanMeierEventIndicator",
+                ],
+              },
+            },
+            {
+              type: "TripleConstraint",
+              predicate:
+                "https://w3id.org/semanticarts/ns/ontology/gist/numericValue",
+              valueExpr: {
+                type: "NodeConstraint",
+                datatype: "http://www.w3.org/2001/XMLSchema#integer",
+              },
+            },
+          ],
+        },
+      },
+    },
+    {
+      id: "https://paediatrics.ox.ac.uk/terms/KaplanMeierTimeMagnitude",
+      type: "ShapeDecl",
+      shapeExpr: {
+        type: "Shape",
+        expression: {
+          type: "EachOf",
+          expressions: [
+            {
+              type: "TripleConstraint",
+              predicate: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+              valueExpr: {
+                type: "NodeConstraint",
+                values: [
+                  "https://w3id.org/semanticarts/ns/ontology/gist/Magnitude",
+                ],
+              },
+            },
+            {
+              type: "TripleConstraint",
+              predicate:
+                "https://w3id.org/semanticarts/ns/ontology/gist/hasAspect",
+              valueExpr: {
+                type: "NodeConstraint",
+                values: [
+                  "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Aspect_KaplanMeierTimeToEvent",
+                ],
+              },
+            },
+            {
+              type: "TripleConstraint",
+              predicate:
+                "https://w3id.org/semanticarts/ns/ontology/gist/hasUnitOfMeasure",
+              valueExpr: {
+                type: "NodeConstraint",
+                values: [
+                  "https://w3id.org/semanticarts/ns/ontology/gist/Unit_Year",
+                ],
+              },
+            },
+            {
+              type: "TripleConstraint",
+              predicate:
+                "https://w3id.org/semanticarts/ns/ontology/gist/numericValue",
+              valueExpr: {
+                type: "NodeConstraint",
+                datatype: "http://www.w3.org/2001/XMLSchema#decimal",
               },
             },
           ],

@@ -193,6 +193,8 @@
 .nemaline-table col.col-loa-age { width: 5em; }
 .nemaline-table col.col-dominant-hand { width: 7em; }
 .nemaline-table col.col-total-mfm { width: 5.5em; }
+.nemaline-table col.col-km-event { width: 5em; }
+.nemaline-table col.col-km-time { width: 6.5em; }
 .nemaline-table col.col-below-avg { width: 6em; }
 
 /* Nested MFM assessment events: part of parent row, indented */
