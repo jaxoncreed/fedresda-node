@@ -199,7 +199,7 @@ function rowToPerson(row: string[], baseUri: string): Omit<Person, '@context'> {
     type: set({ '@id': 'Determination' }),
     isCategorizedBy: { '@id': 'AssessmentTypeKaplanMeier' },
     hasParticipant: { '@id': personUri } as Person,
-    hasMagnitude: set(
+    hasMagnitude: set<KaplanMeierEventMagnitude | KaplanMeierTimeMagnitude>(
       {
         '@id': `${baseUri}#km-event-${id}`,
         type: set({ '@id': 'Magnitude' }),
