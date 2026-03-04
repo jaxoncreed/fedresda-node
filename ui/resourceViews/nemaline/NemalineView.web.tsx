@@ -16,6 +16,10 @@ const GIST_PERSON = 'https://w3id.org/semanticarts/ns/ontology/gist/Person';
 const HAS_MAGNITUDE = 'https://w3id.org/semanticarts/ns/ontology/gist/hasMagnitude';
 const HAS_ASPECT = 'https://w3id.org/semanticarts/ns/ontology/gist/hasAspect';
 const NUMERIC_VALUE = 'https://w3id.org/semanticarts/ns/ontology/gist/numericValue';
+const HAS_PARTICIPANT = 'https://w3id.org/semanticarts/ns/ontology/gist/hasParticipant';
+const IS_CATEGORIZED_BY = 'https://w3id.org/semanticarts/ns/ontology/gist/isCategorizedBy';
+const KAPLAN_MEIER_ASSESSMENT_TYPE =
+  'https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/AssessmentType_KaplanMeier';
 
 function getAspectId(m: unknown): string | undefined {
   const hasAspect = (m as { hasAspect?: { '@id'?: string } | { toArray?: () => Array<{ '@id'?: string }> } }).hasAspect;
@@ -130,6 +134,120 @@ function isTotalMFMAspect(aspect: string): boolean {
   return last.includes('AggregateScore') || last.includes('MFM32_Aggregate');
 }
 
+function isKaplanMeierEventAspect(aspect: string): boolean {
+  const last = (aspect ?? '').split('/').pop() ?? aspect;
+  return last.includes('KaplanMeierEventIndicator');
+}
+
+function isKaplanMeierTimeAspect(aspect: string): boolean {
+  const last = (aspect ?? '').split('/').pop() ?? aspect;
+  return last.includes('KaplanMeierTimeToEvent');
+}
+
+function getCategoryIds(value: unknown): string[] {
+  if (!value) return [];
+  const raw = (value as { toArray?: () => unknown[] }).toArray?.() ?? value;
+  const arr = Array.isArray(raw) ? raw : [value];
+  return arr
+    .map((c) => (c as { '@id'?: string })?.['@id'])
+    .filter((id): id is string => typeof id === 'string');
+}
+
+function getMagnitudeFromValue(
+  value: unknown,
+  aspectMatch: (aspect: string) => boolean,
+): number | undefined {
+  if (!value) return undefined;
+  const raw = (value as { toArray?: () => unknown[] }).toArray?.() ?? value;
+  const arr = Array.isArray(raw) ? raw : [value];
+  for (const m of arr) {
+    const aspect = getAspectId(m);
+    if (!aspect || !aspectMatch(aspect)) continue;
+    const numericValue = (m as { numericValue?: number }).numericValue;
+    if (typeof numericValue === 'number') return numericValue;
+  }
+  return undefined;
+}
+
+function getKaplanMeierValues(person: Person): {
+  event?: number;
+  time?: number;
+} {
+  const participants = person.hasParticipant;
+  if (!participants) return {};
+  const raw = participants.toArray?.() ?? participants;
+  const arr = Array.isArray(raw) ? raw : [participants];
+  for (const participant of arr) {
+    const categoryIds = getCategoryIds(
+      (participant as { isCategorizedBy?: unknown }).isCategorizedBy,
+    );
+    const isKaplanNode = categoryIds.some(
+      (id) =>
+        id === KAPLAN_MEIER_ASSESSMENT_TYPE ||
+        id.split('/').pop() === 'AssessmentType_KaplanMeier',
+    );
+    if (!isKaplanNode) continue;
+    const magnitudes = (participant as { hasMagnitude?: unknown }).hasMagnitude;
+    const event = getMagnitudeFromValue(magnitudes, isKaplanMeierEventAspect);
+    const time = getMagnitudeFromValue(magnitudes, isKaplanMeierTimeAspect);
+    return { event, time };
+  }
+  return {};
+}
+
+function getKaplanMeierValuesFromGraph(
+  dataset: { match: (s: unknown, p: unknown, o: unknown, g?: unknown) => { toArray?: () => unknown[] } },
+  personUri: string | undefined,
+): { event?: number; time?: number } {
+  if (!personUri) return {};
+  const personNode = namedNode(personUri);
+  const hasParticipantNode = namedNode(HAS_PARTICIPANT);
+  const isCategorizedByNode = namedNode(IS_CATEGORIZED_BY);
+  const hasMagnitudeNode = namedNode(HAS_MAGNITUDE);
+  const hasAspectNode = namedNode(HAS_ASPECT);
+  const numericValueNode = namedNode(NUMERIC_VALUE);
+  const toArray = (m: { toArray?: () => unknown[] }) =>
+    m && typeof m.toArray === 'function' ? m.toArray() : [];
+  const participantQuads = toArray(dataset.match(null, hasParticipantNode, personNode));
+
+  for (const quad of participantQuads as Array<{ subject?: unknown }>) {
+    const observationNode = quad.subject;
+    if (!observationNode) continue;
+    const categoryQuads = toArray(dataset.match(observationNode, isCategorizedByNode, null));
+    const isKaplanNode = (categoryQuads as Array<{ object?: { value?: string } }>).some(
+      (cq) => cq.object?.value === KAPLAN_MEIER_ASSESSMENT_TYPE,
+    );
+    if (!isKaplanNode) continue;
+
+    const magnitudeQuads = toArray(dataset.match(observationNode, hasMagnitudeNode, null));
+    let event: number | undefined;
+    let time: number | undefined;
+    for (const mq of magnitudeQuads as Array<{ object?: unknown }>) {
+      const magnitudeNode = mq.object;
+      if (!magnitudeNode) continue;
+      const aspectQuad = (
+        toArray(dataset.match(magnitudeNode, hasAspectNode, null)) as Array<{
+          object?: { value?: string };
+        }>
+      )[0];
+      const valueQuad = (
+        toArray(dataset.match(magnitudeNode, numericValueNode, null)) as Array<{
+          object?: { value?: string };
+        }>
+      )[0];
+      const aspect = aspectQuad?.object?.value ?? '';
+      const numStr = valueQuad?.object?.value;
+      const numericValue = numStr != null ? Number(numStr) : NaN;
+      if (Number.isNaN(numericValue)) continue;
+      if (isKaplanMeierEventAspect(aspect)) event = numericValue;
+      if (isKaplanMeierTimeAspect(aspect)) time = numericValue;
+    }
+    return { event, time };
+  }
+
+  return {};
+}
+
 function getAssessmentEvents(person: Person): Array<{ timeFromBaseline: number; mfmScore: number }> {
   const part = person.hasParticipant;
   if (!part) return [];
@@ -160,6 +278,8 @@ const COLUMNS: ReadonlyArray<{ key: string; label: string; align: Align }> = [
   { key: 'loaAge', label: 'LoA age', align: 'right' },
   { key: 'dominantHand', label: 'Dominant hand', align: 'left' },
   { key: 'totalMfm', label: 'Total MFM', align: 'right' },
+  { key: 'kmEvent', label: 'KM event', align: 'right' },
+  { key: 'kmTime', label: 'KM time (yr)', align: 'right' },
   { key: 'belowAvg', label: 'Below avg.', align: 'center' },
 ];
 
@@ -292,10 +412,18 @@ export function NemalineView() {
                 let baselineAge = getMagnitude(person, isBaselineAgeAspect);
                 let loaAge = getMagnitude(person, isLoAAgeAspect);
                 let totalMfm = getMagnitude(person, isTotalMFMAspect);
+                let km = getKaplanMeierValues(person);
                 if (graphDataset && (loaAge == null || totalMfm == null)) {
                   const fromGraph = getMagnitudesFromGraph(graphDataset, person['@id']);
                   if (loaAge == null) loaAge = fromGraph.find((m) => isLoAAgeAspect(m.aspect))?.numericValue;
                   if (totalMfm == null) totalMfm = fromGraph.find((m) => isTotalMFMAspect(m.aspect))?.numericValue;
+                }
+                if (graphDataset && (km.event == null || km.time == null)) {
+                  const fromGraph = getKaplanMeierValuesFromGraph(graphDataset, person['@id']);
+                  km = {
+                    event: km.event ?? fromGraph.event,
+                    time: km.time ?? fromGraph.time,
+                  };
                 }
                 const belowAvg = cats.some((c) => /BelowAverage|Below/.test(c));
                 const assessmentEvents = getAssessmentEvents(person);
@@ -311,6 +439,8 @@ export function NemalineView() {
                   loaAge != null ? loaAge.toFixed(2) : '–',
                   dominantHand ? labelFromId(dominantHand) : '–',
                   totalMfm != null ? String(totalMfm) : '–',
+                  km.event != null ? String(Math.round(km.event)) : '–',
+                  km.time != null ? km.time.toFixed(2) : '–',
                   belowAvg ? <Badge key="badge" variant="secondary">below</Badge> : '–',
                 ];
 
