@@ -3,7 +3,14 @@
  */
 import React, { useMemo, useState, useCallback } from 'react';
 import { View, ScrollView, StyleSheet, Pressable } from 'react-native';
-import { Text, Badge, LoadingBar, useViewContext } from 'linked-data-browser';
+import {
+  Text,
+  Badge,
+  Button,
+  LoadingBar,
+  useTargetResource,
+  useViewContext,
+} from 'linked-data-browser';
 import { useResource, useMatchSubject } from '@ldo/solid-react';
 import { getDataset } from '@ldo/ldo';
 import { namedNode } from '@ldo/rdf-utils';
@@ -20,6 +27,14 @@ const HAS_PARTICIPANT = 'https://w3id.org/semanticarts/ns/ontology/gist/hasParti
 const IS_CATEGORIZED_BY = 'https://w3id.org/semanticarts/ns/ontology/gist/isCategorizedBy';
 const KAPLAN_MEIER_ASSESSMENT_TYPE =
   'https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/AssessmentType_KaplanMeier';
+
+function getTermPolicyUri(dataUri: string): string {
+  const lastSlash = dataUri.lastIndexOf('/');
+  const dir = lastSlash === -1 ? '' : dataUri.slice(0, lastSlash + 1);
+  const fileName = lastSlash === -1 ? dataUri : dataUri.slice(lastSlash + 1);
+  const baseName = fileName.replace(/\.ttl$/i, '');
+  return `${dir}${baseName}.term-policy.ttl`;
+}
 
 function getAspectId(m: unknown): string | undefined {
   const hasAspect = (m as { hasAspect?: { '@id'?: string } | { toArray?: () => Array<{ '@id'?: string }> } }).hasAspect;
@@ -285,6 +300,7 @@ const COLUMNS: ReadonlyArray<{ key: string; label: string; align: Align }> = [
 
 export function NemalineView() {
   const { targetUri } = useViewContext();
+  const { navigateTo } = useTargetResource();
   const resource = useResource(targetUri);
   const persons = useMatchSubject(
     PersonShapeType,
@@ -356,6 +372,7 @@ export function NemalineView() {
     align === 'right' ? 'nemaline-th-right' : align === 'center' ? 'nemaline-th-center' : 'nemaline-th-left';
   const tdClass = (align: Align) =>
     align === 'right' ? 'nemaline-td-right' : align === 'center' ? 'nemaline-td-center' : 'nemaline-td-left';
+  const termPolicyUri = getTermPolicyUri(targetUri);
 
   return (
     <View style={styles.container}>
@@ -367,6 +384,13 @@ export function NemalineView() {
         <Text style={styles.subtitle}>
           {sortedPersons.length} participant{sortedPersons.length === 1 ? '' : 's'}
         </Text>
+        <View style={styles.actionsRow}>
+          <Button
+            text="Change term policy"
+            variant="secondary"
+            onPress={() => navigateTo(termPolicyUri)}
+          />
+        </View>
         <View style={styles.tableWrapper} className="nemaline-table-wrapper">
           <table className="nemaline-table">
             <colgroup>
@@ -518,6 +542,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     color: 'hsl(var(--muted-foreground))',
     fontSize: 14,
+  },
+  actionsRow: {
+    marginBottom: 16,
+    alignSelf: 'flex-start',
   },
   tableWrapper: {
     marginHorizontal: 0,
