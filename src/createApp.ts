@@ -1,3 +1,4 @@
+import { ResourceStore } from "@solid/community-server";
 import express, { Express } from "express";
 import { createApiRouter } from "./api/apiRouter";
 import { setGlobals } from "./globals";
@@ -27,13 +28,18 @@ function applyTrustProxy(app: Express): void {
   }
 }
 
-export function createApp(base: string, rootFilePath: string): Express {
+export function createApp(
+  base: string,
+  rootFilePath: string,
+  resourceStore: ResourceStore,
+): Express {
   const app = express();
   applyTrustProxy(app);
 
   setGlobals({
     baseUrl: base,
     rootFilePath,
+    resourceStore,
   });
 
   const apiRouter = createApiRouter();
