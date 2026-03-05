@@ -51,6 +51,9 @@
       },
       "rootFilePath": {
         "@id": "urn:solid-server:default:variable:rootFilePath"
+      },
+      "resourceStore": {
+        "@id": "urn:solid-server:default:ResourceStore_Backend"
       }
     },
     {
