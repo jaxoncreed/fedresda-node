@@ -267,6 +267,7 @@ export const NemalineCsvResourceCreator: ResourceCreatorConfig = {
 
     const baseName = basename(file.name).replace(/\.csv$/i, '');
     const slug = `${baseName}.ttl` as SolidLeafSlug;
+    const termPolicySlug = `${baseName}.term-policy.ttl` as SolidLeafSlug;
     const baseUri = `${container.uri}${slug}`;
 
     if (dataRows.length === 0) {
@@ -301,7 +302,19 @@ export const NemalineCsvResourceCreator: ResourceCreatorConfig = {
     if (commitResult.isError) {
       createUtils.toast(commitResult.message, { title: 'Error' });
     } else {
-      createUtils.toast(`${slug} created (${dataRows.length} persons).`);
+      createUtils.loadingMessage(`Creating ${termPolicySlug}…`);
+      const termPolicyCreateResult = await container.createChildAndOverwrite(termPolicySlug);
+      if (termPolicyCreateResult.isError) {
+        createUtils.toast(
+          `${slug} created (${dataRows.length} persons), but failed to create ${termPolicySlug}: ${termPolicyCreateResult.message}`,
+          { title: 'Error' },
+        );
+        return;
+      }
+
+      createUtils.toast(
+        `${slug} created (${dataRows.length} persons) with ${termPolicySlug}.`,
+      );
     }
   },
 };
