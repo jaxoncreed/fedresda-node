@@ -322,7 +322,7 @@ export function NemalineView() {
     try {
       const ds = getDataset(sortedPersons[0] as Parameters<typeof getDataset>[0]);
       return ds as Parameters<typeof getMagnitudesFromGraph>[0];
-    } catch {
+    } catch {g
       return null;
     }
   }, [sortedPersons]);
