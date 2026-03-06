@@ -2,6 +2,7 @@ import type { StatisticPlugin } from "../StatisticsPlugin";
 import { getPluginTermPolicy } from "./termPolicyAdapter";
 import { statistics_mean_term_policySchema } from "../../../ui/.ldo/statistics_mean_term_policy.schema";
 import { statistics_mean_querySchema } from "../../../ui/.ldo/statistics_mean_query.schema";
+import type { GraphPath } from "./util/graphPath";
 
 /** Placeholder query type for mean statistic. */
 export type MeanQuery = Record<string, never>;
@@ -12,8 +13,9 @@ export type MeanOutput = Record<string, never>;
 /** Placeholder term policy type for mean statistic. */
 export interface MeanTermPolicy {
   allowedPath: {
-    path: string[];
+    graphPath: GraphPath;
     minValues: number;
+    filterValue?: string;
   }[];
 }
 
