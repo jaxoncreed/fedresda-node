@@ -302,11 +302,22 @@ export const NemalineCsvResourceCreator: ResourceCreatorConfig = {
     if (commitResult.isError) {
       createUtils.toast(commitResult.message, { title: 'Error' });
     } else {
-      createUtils.loadingMessage(`Creating ${termPolicySlug}…`);
-      const termPolicyCreateResult = await container.createChildAndOverwrite(termPolicySlug);
-      if (termPolicyCreateResult.isError) {
+      createUtils.loadingMessage(`Initializing ${termPolicySlug}…`);
+      const termPolicyResource = container.child(termPolicySlug);
+      const initialTermPolicyContent = `${JSON.stringify(
+        { dataSchema: 'nemaline' },
+        null,
+        2,
+      )}\n`;
+      const uploadResult = await termPolicyResource.uploadAndOverwrite(
+        new Blob([initialTermPolicyContent], { type: 'application/json' }),
+        'application/json',
+      );
+      if (uploadResult.isError) {
         createUtils.toast(
-          `${slug} created (${dataRows.length} persons), but failed to create ${termPolicySlug}: ${termPolicyCreateResult.message}`,
+          `${slug} created (${dataRows.length} persons), but failed to initialize ${termPolicySlug}: ${
+            uploadResult.message
+          }`,
           { title: 'Error' },
         );
         return;

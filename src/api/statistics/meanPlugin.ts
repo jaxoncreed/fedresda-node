@@ -1,19 +1,44 @@
 import type { StatisticPlugin } from "../StatisticsPlugin";
+import type { JSONSchema4 } from "json-schema";
+import { graphPathSchema, GraphPath } from "./util/graphPath";
 
 /** Placeholder query type for mean statistic. */
-export interface MeanQuery {
-  // TODO: define query shape
-}
+export type MeanQuery = Record<string, never>;
 
 /** Placeholder output type for mean statistic. */
-export interface MeanOutput {
-  // TODO: define output shape
-}
+export type MeanOutput = Record<string, never>;
 
 /** Placeholder term policy type for mean statistic. */
 export interface MeanTermPolicy {
-  // TODO: define term policy shape
+  allowedPaths: {
+    path: GraphPath;
+    minValues: number;
+  }[];
 }
+
+const meanTermPolicySchema: JSONSchema4 = {
+  type: "object",
+  additionalProperties: false,
+  required: ["allowedPaths"],
+  properties: {
+    allowedPaths: {
+      type: "array",
+      minItems: 1,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["path", "minValues"],
+        properties: {
+          path: graphPathSchema,
+          minValues: {
+            type: "integer",
+            minimum: 1,
+          },
+        },
+      },
+    },
+  },
+};
 
 export const meanPlugin: StatisticPlugin<
   MeanQuery,
@@ -22,12 +47,7 @@ export const meanPlugin: StatisticPlugin<
 > = {
   name: "mean",
   route: "mean",
-  termPolicySchema: {
-    type: "object",
-    properties: {
-      // TODO: define term policy schema
-    },
-  },
+  termPolicySchema: meanTermPolicySchema,
   querySchema: {
     type: "object",
     properties: {
