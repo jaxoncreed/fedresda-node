@@ -33,7 +33,7 @@ function getTermPolicyUri(dataUri: string): string {
   const dir = lastSlash === -1 ? '' : dataUri.slice(0, lastSlash + 1);
   const fileName = lastSlash === -1 ? dataUri : dataUri.slice(lastSlash + 1);
   const baseName = fileName.replace(/\.ttl$/i, '');
-  return `${dir}${baseName}.term-policy.ttl`;
+  return `${dir}${baseName}.term-policy.json`;
 }
 
 function getAspectId(m: unknown): string | undefined {
@@ -322,7 +322,7 @@ export function NemalineView() {
     try {
       const ds = getDataset(sortedPersons[0] as Parameters<typeof getDataset>[0]);
       return ds as Parameters<typeof getMagnitudesFromGraph>[0];
-    } catch {g
+    } catch {
       return null;
     }
   }, [sortedPersons]);
