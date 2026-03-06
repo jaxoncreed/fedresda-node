@@ -11,10 +11,27 @@ export const statistics_mean_term_policyContext: LdoJsonldContext = {
     "@type": "@id",
     "@isCollection": true,
   },
-  path: {
-    "@id": "https://fedresda.setmeld.org/statistics#path",
-    "@type": "http://www.w3.org/2001/XMLSchema#string",
+  graphPath: {
+    "@id": "https://fedresda.setmeld.org/statistics#graphPath",
+    "@type": "@id",
+  },
+  where: {
+    "@id": "https://fedresda.setmeld.org/statistics#where",
+    "@type": "@id",
     "@isCollection": true,
+  },
+  predicate: {
+    "@id": "https://fedresda.setmeld.org/statistics#predicate",
+    "@type": "@id",
+  },
+  value: "https://fedresda.setmeld.org/statistics#value",
+  step: {
+    "@id": "https://fedresda.setmeld.org/statistics#step",
+    "@type": "@id",
+  },
+  inverse: {
+    "@id": "https://fedresda.setmeld.org/statistics#inverse",
+    "@type": "http://www.w3.org/2001/XMLSchema#boolean",
   },
   minValues: {
     "@id": "https://fedresda.setmeld.org/statistics#minValues",

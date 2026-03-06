@@ -32,13 +32,9 @@ export const statistics_mean_term_policySchema: Schema = {
           expressions: [
             {
               type: "TripleConstraint",
-              predicate: "https://fedresda.setmeld.org/statistics#path",
-              valueExpr: {
-                type: "NodeConstraint",
-                datatype: "http://www.w3.org/2001/XMLSchema#string",
-              },
-              min: 1,
-              max: -1,
+              predicate: "https://fedresda.setmeld.org/statistics#graphPath",
+              valueExpr:
+                "https://fedresda.setmeld.org/statistics#GraphPathShape",
             },
             {
               type: "TripleConstraint",
@@ -47,6 +43,102 @@ export const statistics_mean_term_policySchema: Schema = {
                 type: "NodeConstraint",
                 datatype: "http://www.w3.org/2001/XMLSchema#integer",
               },
+            },
+          ],
+        },
+      },
+    },
+    {
+      id: "https://fedresda.setmeld.org/statistics#GraphPathShape",
+      type: "ShapeDecl",
+      shapeExpr: {
+        type: "Shape",
+        expression: {
+          type: "EachOf",
+          expressions: [
+            {
+              type: "TripleConstraint",
+              predicate: "https://fedresda.setmeld.org/statistics#where",
+              valueExpr:
+                "https://fedresda.setmeld.org/statistics#GraphNodeFilterShape",
+              min: 0,
+              max: -1,
+            },
+            {
+              type: "TripleConstraint",
+              predicate: "https://fedresda.setmeld.org/statistics#step",
+              valueExpr:
+                "https://fedresda.setmeld.org/statistics#GraphTraversalStepShape",
+            },
+          ],
+        },
+      },
+    },
+    {
+      id: "https://fedresda.setmeld.org/statistics#GraphNodeFilterShape",
+      type: "ShapeDecl",
+      shapeExpr: {
+        type: "Shape",
+        expression: {
+          type: "EachOf",
+          expressions: [
+            {
+              type: "TripleConstraint",
+              predicate: "https://fedresda.setmeld.org/statistics#predicate",
+              valueExpr: {
+                type: "NodeConstraint",
+                nodeKind: "iri",
+              },
+            },
+            {
+              type: "TripleConstraint",
+              predicate: "https://fedresda.setmeld.org/statistics#value",
+            },
+          ],
+        },
+      },
+    },
+    {
+      id: "https://fedresda.setmeld.org/statistics#GraphTraversalStepShape",
+      type: "ShapeDecl",
+      shapeExpr: {
+        type: "Shape",
+        expression: {
+          type: "EachOf",
+          expressions: [
+            {
+              type: "TripleConstraint",
+              predicate: "https://fedresda.setmeld.org/statistics#predicate",
+              valueExpr: {
+                type: "NodeConstraint",
+                nodeKind: "iri",
+              },
+            },
+            {
+              type: "TripleConstraint",
+              predicate: "https://fedresda.setmeld.org/statistics#inverse",
+              valueExpr: {
+                type: "NodeConstraint",
+                datatype: "http://www.w3.org/2001/XMLSchema#boolean",
+              },
+              min: 0,
+              max: 1,
+            },
+            {
+              type: "TripleConstraint",
+              predicate: "https://fedresda.setmeld.org/statistics#where",
+              valueExpr:
+                "https://fedresda.setmeld.org/statistics#GraphNodeFilterShape",
+              min: 0,
+              max: -1,
+            },
+            {
+              type: "TripleConstraint",
+              predicate: "https://fedresda.setmeld.org/statistics#step",
+              valueExpr:
+                "https://fedresda.setmeld.org/statistics#GraphTraversalStepShape",
+              min: 0,
+              max: 1,
             },
           ],
         },
