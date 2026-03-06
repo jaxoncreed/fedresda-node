@@ -1,19 +1,14 @@
 import type { StatisticPlugin } from "../StatisticsPlugin";
+import { getPluginTermPolicy } from "./termPolicyAdapter";
 
 /** Placeholder query type for Kaplan-Meier statistic. */
-export interface KaplanMeierQuery {
-  // TODO: define query shape
-}
+export type KaplanMeierQuery = Record<string, never>;
 
 /** Placeholder output type for Kaplan-Meier statistic. */
-export interface KaplanMeierOutput {
-  // TODO: define output shape
-}
+export type KaplanMeierOutput = Record<string, never>;
 
 /** Placeholder term policy type for Kaplan-Meier statistic. */
-export interface KaplanMeierTermPolicy {
-  // TODO: define term policy shape
-}
+export type KaplanMeierTermPolicy = Record<string, never>;
 
 export const kaplanMeierPlugin: StatisticPlugin<
   KaplanMeierQuery,
@@ -34,8 +29,14 @@ export const kaplanMeierPlugin: StatisticPlugin<
       // TODO: define term policy schema
     },
   },
-  evaluateTermPolicy(_query, _termPolicy): true | Error {
-    // TODO: implement term policy evaluation
+  evaluateTermPolicy(_query, termPolicyInput): true | Error {
+    const adapted = getPluginTermPolicy("kaplan-meier", termPolicyInput);
+    if (!adapted) {
+      return new Error(
+        "No kaplan-meier term policy found in term policy document.",
+      );
+    }
+    // Kaplan-Meier plugin policy shape is not finalized yet.
     return true;
   },
   async performQuery(_query): Promise<KaplanMeierOutput> {

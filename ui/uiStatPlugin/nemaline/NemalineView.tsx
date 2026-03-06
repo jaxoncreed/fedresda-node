@@ -13,8 +13,8 @@ import {
   useViewContext,
 } from 'linked-data-browser';
 import { useResource, useMatchSubject } from '@ldo/solid-react';
-import { AssessmentEventShapeType } from '../../.ldo/nemaline_myopathy_gist.shapeTypes';
-import type { AssessmentEvent, Subject } from '../../.ldo/nemaline_myopathy_gist.typings';
+import { AssessmentEventShapeType } from '../../shared/schemas';
+import type { AssessmentEvent, Subject } from '../../shared/schemas';
 
 const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
 const GIST_DETERMINATION = 'https://w3id.org/semanticarts/ns/ontology/gist/Determination';

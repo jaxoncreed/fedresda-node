@@ -17,6 +17,7 @@
     "build:server:components": "componentsjs-generator -s src -c dist/components -r fss -i .componentsignore",
     "build:ui": "cd ui && npm install && npm run build:server",
     "build": "npm run build:server && npm run build:ui",
+    "test:schema-migration": "ts-node ./scripts/test-schema-migration.ts",
     "deploy:package": "npm run build && node scripts/create-deploy-package.js",
     "version:get": "bash ./scripts/version.sh get",
     "version:set": "bash ./scripts/version.sh set",

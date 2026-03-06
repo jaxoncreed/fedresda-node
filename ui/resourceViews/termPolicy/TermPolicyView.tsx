@@ -2,6 +2,8 @@ import React, { FunctionComponent, useEffect, useState } from "react";
 import { View, ScrollView, StyleSheet } from "react-native";
 import { Text, LoadingBar, useViewContext } from "linked-data-browser";
 import { useSolidAuth } from "@ldo/solid-react";
+import { parseRdf } from "@ldo/ldo";
+import { namedNode } from "@ldo/rdf-utils";
 import type { JSONSchema4 } from "json-schema";
 
 async function fetchTermPolicies(
@@ -16,16 +18,112 @@ async function fetchTermPolicies(
   return res.json();
 }
 
-async function fetchTermPolicyDocument(
+const DATA_SCHEMA_PREDICATE = "https://fedresda.setmeld.org/term-policy#dataSchema";
+
+type RdfTerm = {
+  termType?: string;
+  value?: string;
+};
+
+function getCandidateTermPolicyUris(targetUri: string): string[] {
+  if (targetUri.endsWith(".term-policy.ttl")) {
+    return [
+      targetUri,
+      targetUri.replace(/\.term-policy\.ttl$/i, ".term-policy.jsonld"),
+      targetUri.replace(/\.term-policy\.ttl$/i, ".term-policy.json"),
+    ];
+  }
+  if (targetUri.endsWith(".term-policy.jsonld")) {
+    return [
+      targetUri.replace(/\.term-policy\.jsonld$/i, ".term-policy.ttl"),
+      targetUri,
+      targetUri.replace(/\.term-policy\.jsonld$/i, ".term-policy.json"),
+    ];
+  }
+  if (targetUri.endsWith(".term-policy.json")) {
+    return [
+      targetUri.replace(/\.term-policy\.json$/i, ".term-policy.ttl"),
+      targetUri.replace(/\.term-policy\.json$/i, ".term-policy.jsonld"),
+      targetUri,
+    ];
+  }
+  return [targetUri];
+}
+
+function getDataSchemaNameFromJson(termPolicyDoc: Record<string, unknown>): string | null {
+  const raw = termPolicyDoc.dataSchema;
+  if (typeof raw === "string") {
+    return raw;
+  }
+  if (raw && typeof raw === "object" && "@id" in raw) {
+    const id = (raw as { "@id"?: unknown })["@id"];
+    if (typeof id === "string") {
+      return id;
+    }
+  }
+  return null;
+}
+
+async function parseTermPolicySchemaName(
+  payload: string,
+  sourceUri: string,
+  contentType: string,
+): Promise<string | null> {
+  const lowerContentType = contentType.toLowerCase();
+  const looksLikeTurtle =
+    sourceUri.endsWith(".ttl") ||
+    lowerContentType.includes("text/turtle") ||
+    lowerContentType.includes("application/x-turtle");
+  if (looksLikeTurtle) {
+    const dataset = await parseRdf(payload, {
+      baseIRI: sourceUri,
+      format: "Turtle",
+    });
+    const matches = dataset.match(
+      null,
+      namedNode(DATA_SCHEMA_PREDICATE),
+      null,
+    );
+    const quads =
+      typeof (matches as { toArray?: () => unknown[] }).toArray === "function"
+        ? (matches as { toArray: () => unknown[] }).toArray()
+        : [];
+    const firstMatch = quads[0] as { object?: RdfTerm } | undefined;
+    const object = firstMatch?.object;
+    return typeof object?.value === "string" ? object.value : null;
+  }
+
+  const json = JSON.parse(payload) as Record<string, unknown>;
+  return getDataSchemaNameFromJson(json);
+}
+
+async function fetchTermPolicySchemaName(
   authFetch: typeof fetch,
   targetUri: string,
-): Promise<Record<string, unknown>> {
-  const res = await authFetch(targetUri);
-  if (!res.ok) {
-    const message = await res.text();
-    throw new Error(message || `Request failed: ${res.status}`);
+): Promise<string | null> {
+  const candidateUris = getCandidateTermPolicyUris(targetUri);
+  const errors: string[] = [];
+
+  for (const uri of candidateUris) {
+    const res = await authFetch(uri);
+    if (!res.ok) {
+      errors.push(`${uri}: ${res.status}`);
+      continue;
+    }
+    const contentType = res.headers.get("content-type") ?? "";
+    const payload = await res.text();
+    try {
+      return await parseTermPolicySchemaName(payload, uri, contentType);
+    } catch (e) {
+      errors.push(
+        `${uri}: ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
   }
-  return res.json();
+
+  throw new Error(
+    `Unable to parse term policy resource. Attempts: ${errors.join("; ")}`,
+  );
 }
 
 async function fetchDataSchema(
@@ -34,7 +132,7 @@ async function fetchDataSchema(
 ): Promise<unknown> {
   const origin = window.location.origin;
   const res = await authFetch(
-    `${origin}/.api/data-schema/${encodeURIComponent(schemaName)}`,
+    `${origin}/.api/data-schema/${encodeURIComponent(schemaName)}?view=json`,
   );
   if (!res.ok) {
     const message = await res.text();
@@ -60,12 +158,8 @@ export const TermPolicyView: FunctionComponent = () => {
     let cancelled = false;
     setIsLoading(true);
 
-    Promise.all([fetchTermPolicies(fetch), fetchTermPolicyDocument(fetch, targetUri)])
-      .then(async ([policySchemas, termPolicyDoc]) => {
-        const schemaNameValue =
-          typeof termPolicyDoc.dataSchema === "string"
-            ? termPolicyDoc.dataSchema
-            : null;
+    Promise.all([fetchTermPolicies(fetch), fetchTermPolicySchemaName(fetch, targetUri)])
+      .then(async ([policySchemas, schemaNameValue]) => {
         let resolvedDataSchema: unknown | null = null;
         let resolvedDataSchemaError: string | null = null;
 
