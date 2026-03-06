@@ -1,7 +1,7 @@
 import type { StatisticPlugin } from "../StatisticsPlugin";
 import { meanPlugin } from "./meanPlugin";
 import { kaplanMeierPlugin } from "./kaplanMeierPlugin";
-import { JSONSchema4 } from "json-schema";
+import type { Schema } from "shexj";
 
 /** All registered statistic plugins. Add new plugins here. */
 export const statisticsPlugins: StatisticPlugin<unknown, unknown, unknown>[] = [
@@ -20,7 +20,7 @@ export function findStatisticPlugin(
   return statisticsPlugins.find((p) => p.route === route);
 }
 
-export function getTermPolicySchemas(): Record<string, JSONSchema4> {
+export function getTermPolicySchemas(): Record<string, Schema> {
   return statisticsPlugins.reduce(
     (agg, val) => ({ ...agg, [val.name]: val.termPolicySchema }),
     {},

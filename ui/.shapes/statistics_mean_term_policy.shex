@@ -1,0 +1,11 @@
+PREFIX statp: <https://fedresda.setmeld.org/statistics#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+statp:MeanTermPolicyShape {
+  statp:allowedPath @statp:AllowedPathShape +
+}
+
+statp:AllowedPathShape {
+  statp:path xsd:string + ;
+  statp:minValues xsd:integer
+}

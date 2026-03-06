@@ -4,11 +4,11 @@ import { Text, LoadingBar, useViewContext } from "linked-data-browser";
 import { useSolidAuth } from "@ldo/solid-react";
 import { parseRdf } from "@ldo/ldo";
 import { namedNode } from "@ldo/rdf-utils";
-import type { JSONSchema4 } from "json-schema";
+import type { Schema } from "shexj";
 
 async function fetchTermPolicies(
   authFetch: typeof fetch,
-): Promise<Record<string, JSONSchema4>> {
+): Promise<Record<string, Schema>> {
   const origin = window.location.origin;
   const res = await authFetch(`${origin}/.api/term-policy`);
   if (!res.ok) {
@@ -145,7 +145,7 @@ export const TermPolicyView: FunctionComponent = () => {
   const { targetUri } = useViewContext();
   const { fetch } = useSolidAuth();
   const [isLoading, setIsLoading] = useState(true);
-  const [termPolicies, setTermPolicies] = useState<Record<string, JSONSchema4>>(
+  const [termPolicies, setTermPolicies] = useState<Record<string, Schema>>(
     {},
   );
   const [dataSchemaName, setDataSchemaName] = useState<string | null>(null);

@@ -1,5 +1,7 @@
 import type { StatisticPlugin } from "../StatisticsPlugin";
 import { getPluginTermPolicy } from "./termPolicyAdapter";
+import { statistics_kaplan_meier_term_policySchema } from "../../../ui/.ldo/statistics_kaplan_meier_term_policy.schema";
+import { statistics_kaplan_meier_querySchema } from "../../../ui/.ldo/statistics_kaplan_meier_query.schema";
 
 /** Placeholder query type for Kaplan-Meier statistic. */
 export type KaplanMeierQuery = Record<string, never>;
@@ -17,18 +19,8 @@ export const kaplanMeierPlugin: StatisticPlugin<
 > = {
   name: "kaplan-meier",
   route: "kaplan-meier",
-  termPolicySchema: {
-    type: "object",
-    properties: {
-      // TODO: define term policy schema
-    },
-  },
-  querySchema: {
-    type: "object",
-    properties: {
-      // TODO: define term policy schema
-    },
-  },
+  termPolicySchema: statistics_kaplan_meier_term_policySchema,
+  querySchema: statistics_kaplan_meier_querySchema,
   evaluateTermPolicy(_query, termPolicyInput): true | Error {
     const adapted = getPluginTermPolicy("kaplan-meier", termPolicyInput);
     if (!adapted) {
