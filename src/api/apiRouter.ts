@@ -2,10 +2,11 @@ import express, { NextFunction, Request, Response } from "express";
 import { createValidateWebId } from "./validateWebId";
 import { HttpError } from "./HttpError";
 import { getGlobals } from "../globals";
+import { findStatisticPlugin, getTermPolicySchemas } from "./statistics";
 
 export function createApiRouter() {
   const apiRouter = express.Router();
-  const { resourceStore } = getGlobals();
+  getGlobals();
 
   /**
    * ===========================================================================
@@ -14,6 +15,45 @@ export function createApiRouter() {
    */
   apiRouter.use(createValidateWebId());
   apiRouter.use(express.json({ limit: "1mb" }));
+
+  /**
+   * ===========================================================================
+   * STATISTICS ROUTES
+   * ===========================================================================
+   */
+  apiRouter.get(
+    "/stat/:route",
+    (req: Request, res: Response, _next: NextFunction) => {
+      const { route } = req.params;
+      const plugin = findStatisticPlugin(route);
+      if (!plugin) {
+        res.status(404).json({ error: `Unknown statistic: ${route}` });
+        return;
+      }
+      res.json({
+        name: plugin.name,
+        route: plugin.route,
+        termPolicySchema: plugin.termPolicySchema,
+      });
+    },
+  );
+
+  /**
+   * ===========================================================================
+   * TERM POLICY ROUTES
+   * ===========================================================================
+   */
+  apiRouter.get(
+    "/term-policy",
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const termPolicies = await getTermPolicySchemas();
+        res.json(termPolicies);
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
 
   /**
    * ===========================================================================

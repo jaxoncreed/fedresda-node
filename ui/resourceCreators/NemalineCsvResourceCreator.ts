@@ -267,7 +267,7 @@ export const NemalineCsvResourceCreator: ResourceCreatorConfig = {
 
     const baseName = basename(file.name).replace(/\.csv$/i, '');
     const slug = `${baseName}.ttl` as SolidLeafSlug;
-    const termPolicySlug = `${baseName}.term-policy.ttl` as SolidLeafSlug;
+    const termPolicySlug = `${baseName}.term-policy.json` as SolidLeafSlug;
     const baseUri = `${container.uri}${slug}`;
 
     if (dataRows.length === 0) {
