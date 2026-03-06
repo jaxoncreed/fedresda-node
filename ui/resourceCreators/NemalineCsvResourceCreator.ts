@@ -7,7 +7,7 @@ import type {
 } from '@ldo/connected';
 import { Stethoscope } from 'lucide-react-native';
 import { ResourceCreatorConfig } from 'linked-data-browser';
-import { PersonShapeType } from '../.ldo/nemaline_myopathy_gist.shapeTypes';
+import { PersonShapeType } from '../shared/schemas';
 import type {
   Person,
   MFMAssessmentEvent,
@@ -21,7 +21,7 @@ import type {
   TotalMFMMagnitude,
   TimeFromBaselineMagnitude,
   MFMScoreMagnitude,
-} from '../.ldo/nemaline_myopathy_gist.typings';
+} from '../shared/schemas';
 
 /** Container with context exposed so we can get the dataset for createData/commitToRemote. */
 type ContainerWithContext = SolidContainer & {
@@ -267,7 +267,7 @@ export const NemalineCsvResourceCreator: ResourceCreatorConfig = {
 
     const baseName = basename(file.name).replace(/\.csv$/i, '');
     const slug = `${baseName}.ttl` as SolidLeafSlug;
-    const termPolicySlug = `${baseName}.term-policy.json` as SolidLeafSlug;
+    const termPolicySlug = `${baseName}.term-policy.ttl` as SolidLeafSlug;
     const baseUri = `${container.uri}${slug}`;
 
     if (dataRows.length === 0) {
@@ -304,14 +304,16 @@ export const NemalineCsvResourceCreator: ResourceCreatorConfig = {
     } else {
       createUtils.loadingMessage(`Initializing ${termPolicySlug}…`);
       const termPolicyResource = container.child(termPolicySlug);
-      const initialTermPolicyContent = `${JSON.stringify(
-        { dataSchema: 'nemaline' },
-        null,
-        2,
-      )}\n`;
+      const initialTermPolicyContent = [
+        '@prefix tp: <https://fedresda.setmeld.org/term-policy#> .',
+        '',
+        '<#policy> a tp:TermPolicy ;',
+        '  tp:dataSchema "nemaline" .',
+        '',
+      ].join('\n');
       const uploadResult = await termPolicyResource.uploadAndOverwrite(
-        new Blob([initialTermPolicyContent], { type: 'application/json' }),
-        'application/json',
+        new Blob([initialTermPolicyContent], { type: 'text/turtle' }),
+        'text/turtle',
       );
       if (uploadResult.isError) {
         createUtils.toast(

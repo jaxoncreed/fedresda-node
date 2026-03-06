@@ -1,6 +1,7 @@
 import type { StatisticPlugin } from "../StatisticsPlugin";
 import type { JSONSchema4 } from "json-schema";
 import { graphPathSchema, GraphPath } from "./util/graphPath";
+import { getPluginTermPolicy } from "./termPolicyAdapter";
 
 /** Placeholder query type for mean statistic. */
 export type MeanQuery = Record<string, never>;
@@ -54,8 +55,15 @@ export const meanPlugin: StatisticPlugin<
       // TODO: define term policy schema
     },
   },
-  evaluateTermPolicy(_query, _termPolicy): true | Error {
-    // TODO: implement term policy evaluation
+  evaluateTermPolicy(_query, termPolicyInput): true | Error {
+    const adapted = getPluginTermPolicy("mean", termPolicyInput);
+    if (!adapted) {
+      return new Error("No mean term policy found in term policy document.");
+    }
+    const allowedPaths = adapted.allowedPaths;
+    if (!Array.isArray(allowedPaths) || allowedPaths.length === 0) {
+      return new Error("mean term policy requires at least one allowedPath.");
+    }
     return true;
   },
   async performQuery(_query): Promise<MeanOutput> {

@@ -11,12 +11,12 @@ import {
   useTargetResource,
   useViewContext,
 } from 'linked-data-browser';
-import { useResource, useMatchSubject } from '@ldo/solid-react';
+import { useResource, useMatchSubject, useSolidAuth } from '@ldo/solid-react';
 import { getDataset } from '@ldo/ldo';
 import { namedNode } from '@ldo/rdf-utils';
 import { ChevronDown, ChevronRight, ChevronsDown, ChevronsUp } from 'lucide-react-native';
-import { PersonShapeType } from '../../.ldo/nemaline_myopathy_gist.shapeTypes';
-import type { Person } from '../../.ldo/nemaline_myopathy_gist.typings';
+import { PersonShapeType } from '../../shared/schemas';
+import type { Person } from '../../shared/schemas';
 
 const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
 const GIST_PERSON = 'https://w3id.org/semanticarts/ns/ontology/gist/Person';
@@ -28,12 +28,25 @@ const IS_CATEGORIZED_BY = 'https://w3id.org/semanticarts/ns/ontology/gist/isCate
 const KAPLAN_MEIER_ASSESSMENT_TYPE =
   'https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/AssessmentType_KaplanMeier';
 
-function getTermPolicyUri(dataUri: string): string {
+function getTermPolicyUris(dataUri: string): {
+  ttl: string;
+  jsonld: string;
+  legacyJson: string;
+} {
   const lastSlash = dataUri.lastIndexOf('/');
   const dir = lastSlash === -1 ? '' : dataUri.slice(0, lastSlash + 1);
   const fileName = lastSlash === -1 ? dataUri : dataUri.slice(lastSlash + 1);
   const baseName = fileName.replace(/\.ttl$/i, '');
-  return `${dir}${baseName}.term-policy.json`;
+  return {
+    ttl: `${dir}${baseName}.term-policy.ttl`,
+    jsonld: `${dir}${baseName}.term-policy.jsonld`,
+    legacyJson: `${dir}${baseName}.term-policy.json`,
+  };
+}
+
+async function resourceExists(authFetch: typeof fetch, uri: string): Promise<boolean> {
+  const response = await authFetch(uri, { method: 'GET' });
+  return response.ok;
 }
 
 function getAspectId(m: unknown): string | undefined {
@@ -301,6 +314,7 @@ const COLUMNS: ReadonlyArray<{ key: string; label: string; align: Align }> = [
 export function NemalineView() {
   const { targetUri } = useViewContext();
   const { navigateTo } = useTargetResource();
+  const { fetch } = useSolidAuth();
   const resource = useResource(targetUri);
   const persons = useMatchSubject(
     PersonShapeType,
@@ -372,7 +386,7 @@ export function NemalineView() {
     align === 'right' ? 'nemaline-th-right' : align === 'center' ? 'nemaline-th-center' : 'nemaline-th-left';
   const tdClass = (align: Align) =>
     align === 'right' ? 'nemaline-td-right' : align === 'center' ? 'nemaline-td-center' : 'nemaline-td-left';
-  const termPolicyUri = getTermPolicyUri(targetUri);
+  const termPolicyUris = getTermPolicyUris(targetUri);
 
   return (
     <View style={styles.container}>
@@ -388,7 +402,21 @@ export function NemalineView() {
           <Button
             text="Change term policy"
             variant="secondary"
-            onPress={() => navigateTo(termPolicyUri)}
+            onPress={async () => {
+              if (await resourceExists(fetch, termPolicyUris.ttl)) {
+                navigateTo(termPolicyUris.ttl);
+                return;
+              }
+              if (await resourceExists(fetch, termPolicyUris.jsonld)) {
+                navigateTo(termPolicyUris.jsonld);
+                return;
+              }
+              if (await resourceExists(fetch, termPolicyUris.legacyJson)) {
+                navigateTo(termPolicyUris.legacyJson);
+                return;
+              }
+              navigateTo(termPolicyUris.jsonld);
+            }}
           />
         </View>
         <View style={styles.tableWrapper} className="nemaline-table-wrapper">

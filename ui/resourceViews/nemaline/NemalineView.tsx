@@ -15,8 +15,8 @@ import {
 import { useResource, useMatchSubject } from '@ldo/solid-react';
 import { getDataset } from '@ldo/ldo';
 import { namedNode } from '@ldo/rdf-utils';
-import { PersonShapeType } from '../../.ldo/nemaline_myopathy_gist.shapeTypes';
-import type { Person } from '../../.ldo/nemaline_myopathy_gist.typings';
+import { PersonShapeType } from '../../shared/schemas';
+import type { Person } from '../../shared/schemas';
 
 const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
 const GIST_PERSON = 'https://w3id.org/semanticarts/ns/ontology/gist/Person';

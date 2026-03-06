@@ -3,7 +3,7 @@ import { createValidateWebId } from "./validateWebId";
 import { HttpError } from "./HttpError";
 import { getGlobals } from "../globals";
 import { findStatisticPlugin, getTermPolicySchemas } from "./statistics";
-import { findDataSchema } from "./dataSchemas";
+import { asJsonDataSchema, findDataSchema } from "./dataSchemas";
 
 export function createApiRouter() {
   const apiRouter = express.Router();
@@ -60,12 +60,17 @@ export function createApiRouter() {
     "/data-schema/:name",
     (req: Request, res: Response, _next: NextFunction) => {
       const { name } = req.params;
+      const view = req.query.view;
       const schema = findDataSchema(name);
       if (!schema) {
         res.status(404).json({ error: `Unknown data schema: ${name}` });
         return;
       }
-      res.json(schema);
+      if (view === "shexj") {
+        res.json(schema);
+        return;
+      }
+      res.json(asJsonDataSchema(name, schema));
     },
   );
 

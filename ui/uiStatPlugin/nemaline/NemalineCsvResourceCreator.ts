@@ -7,7 +7,7 @@ import type {
 } from '@ldo/connected';
 import { Stethoscope } from 'lucide-react-native';
 import { ResourceCreatorConfig } from 'linked-data-browser';
-import { AssessmentEventShapeType } from '../../.ldo/nemaline_myopathy_gist.shapeTypes';
+import { AssessmentEventShapeType } from '../../shared/schemas';
 import type {
   AssessmentEvent,
   Subject,
@@ -20,7 +20,7 @@ import type {
   LoAAgeMagnitude,
   MFMSubScoreMagnitude,
   TimeOffsetMagnitude,
-} from '../../.ldo/nemaline_myopathy_gist.typings';
+} from '../../shared/schemas';
 
 /** Container with context exposed so we can get the dataset for createData/commitToRemote. */
 type ContainerWithContext = SolidContainer & {
