@@ -49,6 +49,9 @@ function normalizeValueExpr(valueExpr: unknown): string[] {
   if (!valueExpr || typeof valueExpr !== "object") {
     return [];
   }
+  if ("datatype" in valueExpr && typeof valueExpr.datatype === "string") {
+    return [`datatype:${valueExpr.datatype}`];
+  }
   if ("values" in valueExpr && Array.isArray(valueExpr.values)) {
     return valueExpr.values
       .filter((value): value is string => typeof value === "string")
@@ -103,15 +106,18 @@ function extractConstraints(shape: unknown): TripleConstraint[] {
     .filter((tc): tc is Required<Pick<MaybeTripleConstraint, "predicate">> & MaybeTripleConstraint =>
       typeof tc.predicate === "string",
     )
-    .flatMap((tc) => {
+    .map((tc) => {
       const values = normalizeValueExpr(tc.valueExpr);
       if (values.length > 0) {
-        return values.map((valueExpr) => ({ predicate: tc.predicate as string, valueExpr }));
+        return {
+          predicate: tc.predicate as string,
+          valueExpr: values.join(" | "),
+        };
       }
       if (typeof tc.valueExpr === "string") {
-        return [{ predicate: tc.predicate as string, valueExpr: tc.valueExpr }];
+        return { predicate: tc.predicate as string, valueExpr: tc.valueExpr };
       }
-      return [];
+      return { predicate: tc.predicate as string, valueExpr: "Unknown" };
     });
 }
 

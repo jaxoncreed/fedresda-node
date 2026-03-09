@@ -11,9 +11,7 @@ export const TermPolicyConfig: ResourceViewConfig = {
   canDisplay: (targetUri) => {
     const path = new URL(targetUri).pathname;
     return (
-      path.endsWith(".term-policy.ttl") ||
-      path.endsWith(".term-policy.json") ||
-      path.endsWith(".term-policy.jsonld")
+      path.endsWith(".term-policy.ttl")
     );
   },
 };
