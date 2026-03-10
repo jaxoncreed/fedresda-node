@@ -12,6 +12,16 @@ SetMeld Pod: A Solid Pod with tools for deploying data integrations.
 
 ## Development
 
+### Monorepo Structure
+
+This repository is now an Nx-powered monorepo with three workspace packages:
+
+- `server` (`@fedresda/server`) - Community Solid Server integration and API layer
+- `ui` (`@fedresda/ui`) - Expo/React UI application
+- `types` (`@fedresda/types`) - Shared LDO/generated schema package consumed by both `server` and `ui`
+
+Top-level tooling (`nx`, workspace install, orchestrated build/dev scripts) lives at the repo root.
+
 ### Quick Start
 
 ```bash
@@ -40,8 +50,14 @@ After running `npm run dev`, you can:
 
 ### Development Scripts
 
-- `npm run dev` — Start both server and UI concurrently
-- `npm run build` — Build server and UI for production
+- `npm run dev` - Start `server` and `ui` via Nx
+- `npm run dev:server` - Run only `@fedresda/server`
+- `npm run dev:ui` - Run only `@fedresda/ui`
+- `npm run build` - Build `types`, `server`, and `ui` via Nx
+- `npm run build:types` - Build only `@fedresda/types`
+- `npm run build:server` - Build only `@fedresda/server`
+- `npm run build:ui` - Build only `@fedresda/ui`
+- `npm run graph` - Open the Nx project graph
 - `npm run deploy:package` — Build and create the Docker Compose deployment tarball (`build/fedresda-node-deploy-*.tar.gz`)
 
 ### Version Management

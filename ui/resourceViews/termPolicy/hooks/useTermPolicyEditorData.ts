@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Schema } from "shexj";
-import type { DataSchemaJsonView, StatisticPolicy } from "../types";
+import type {
+  DataSchemaJsonView,
+  StatisticPolicy,
+  TermPolicySchemas,
+} from "../types";
 import { createEmptyGraphPath, makeId } from "../types";
 import {
   buildTermPolicyTurtle,
@@ -11,31 +14,22 @@ import {
   extractPredicateOptions,
   extractValueOptions,
 } from "../utils/schemaOptions";
-import { createGraphPathOptionResolver } from "../utils/graphPathOptionResolver";
+import {
+  createStartPredicateOptionGetter,
+  createStartValueOptionGetter,
+  createStepPredicateOptionGetter,
+  createStepWherePredicateOptionGetter,
+  createStepWhereValueOptionGetter,
+} from "../utils/graphPathOptionResolver";
+import { asJsonDataSchema, findDataSchema } from "../dataSchemas";
+import { getTermPolicySchemasByStatisticPlugin } from "../statisticPlugins";
 
-async function fetchTermPolicies(
-  authFetch: typeof fetch,
-): Promise<Record<string, Schema>> {
-  const origin = window.location.origin;
-  const res = await authFetch(`${origin}/.api/term-policy`);
-  if (!res.ok) {
-    throw new Error((await res.text()) || `Request failed: ${res.status}`);
+function getDataSchema(schemaName: string): DataSchemaJsonView {
+  const schema = findDataSchema(schemaName);
+  if (!schema) {
+    throw new Error(`Unknown data schema: ${schemaName}`);
   }
-  return res.json();
-}
-
-async function fetchDataSchema(
-  authFetch: typeof fetch,
-  schemaName: string,
-): Promise<DataSchemaJsonView> {
-  const origin = window.location.origin;
-  const res = await authFetch(
-    `${origin}/.api/data-schema/${encodeURIComponent(schemaName)}?view=json`,
-  );
-  if (!res.ok) {
-    throw new Error((await res.text()) || `Request failed: ${res.status}`);
-  }
-  return res.json();
+  return asJsonDataSchema(schemaName, schema);
 }
 
 export function useTermPolicyEditorData(
@@ -46,7 +40,7 @@ export function useTermPolicyEditorData(
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [termPolicySchemas, setTermPolicySchemas] = useState<Record<string, Schema>>(
+  const [termPolicySchemas, setTermPolicySchemas] = useState<TermPolicySchemas>(
     {},
   );
   const [dataSchemaName, setDataSchemaName] = useState<string | null>(null);
@@ -61,11 +55,12 @@ export function useTermPolicyEditorData(
     setError(null);
     setSaveMessage(null);
 
-    Promise.all([fetchTermPolicies(authFetch), loadTermPolicy(authFetch, targetUri)])
-      .then(async ([schemas, termPolicy]) => {
+    Promise.resolve(loadTermPolicy(authFetch, targetUri))
+      .then((termPolicy) => {
+        const schemas = getTermPolicySchemasByStatisticPlugin();
         let loadedDataSchema: DataSchemaJsonView | null = null;
         if (termPolicy.dataSchemaName) {
-          loadedDataSchema = await fetchDataSchema(authFetch, termPolicy.dataSchemaName);
+          loadedDataSchema = getDataSchema(termPolicy.dataSchemaName);
         }
         if (cancelled) return;
         setTermPolicySchemas(schemas);
@@ -93,8 +88,24 @@ export function useTermPolicyEditorData(
     () => extractValueOptions(dataSchema),
     [dataSchema],
   );
-  const graphPathOptionResolver = useMemo(
-    () => createGraphPathOptionResolver(dataSchema),
+  const getStartPredicateOptions = useMemo(
+    () => createStartPredicateOptionGetter(dataSchema),
+    [dataSchema],
+  );
+  const getStartValueOptions = useMemo(
+    () => createStartValueOptionGetter(dataSchema),
+    [dataSchema],
+  );
+  const getStepPredicateOptions = useMemo(
+    () => createStepPredicateOptionGetter(dataSchema),
+    [dataSchema],
+  );
+  const getStepWherePredicateOptions = useMemo(
+    () => createStepWherePredicateOptionGetter(dataSchema),
+    [dataSchema],
+  );
+  const getStepWhereValueOptions = useMemo(
+    () => createStepWhereValueOptionGetter(dataSchema),
     [dataSchema],
   );
   const statisticNames = useMemo(
@@ -184,7 +195,11 @@ export function useTermPolicyEditorData(
     setNewStatisticName,
     predicateOptions,
     filterValueOptions,
-    graphPathOptionResolver,
+    getStartPredicateOptions,
+    getStartValueOptions,
+    getStepPredicateOptions,
+    getStepWherePredicateOptions,
+    getStepWhereValueOptions,
     addStatisticPolicy,
     save,
   };

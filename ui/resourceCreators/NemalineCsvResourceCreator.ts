@@ -7,7 +7,7 @@ import type {
 } from '@ldo/connected';
 import { Stethoscope } from 'lucide-react-native';
 import { ResourceCreatorConfig } from 'linked-data-browser';
-import { PersonShapeType } from '../shared/schemas';
+import { PersonShapeType } from '@fedresda/types';
 import type {
   Person,
   MFMAssessmentEvent,
@@ -21,7 +21,7 @@ import type {
   TotalMFMMagnitude,
   TimeFromBaselineMagnitude,
   MFMScoreMagnitude,
-} from '../shared/schemas';
+} from '@fedresda/types';
 
 /** Container with context exposed so we can get the dataset for createData/commitToRemote. */
 type ContainerWithContext = SolidContainer & {

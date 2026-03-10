@@ -17,23 +17,24 @@ type MaybeTripleConstraint = {
   expressions?: unknown[];
 };
 
-export type GraphPathOptionResolver = {
-  getStartPredicateOptions: (graphPath: GraphPathForm) => string[];
-  getStartValueOptions: (
-    graphPath: GraphPathForm,
-    predicate: string,
-  ) => string[];
-  getStepPredicateOptions: (graphPath: GraphPathForm, stepIndex: number) => string[];
-  getStepWherePredicateOptions: (
-    graphPath: GraphPathForm,
-    stepIndex: number,
-  ) => string[];
-  getStepWhereValueOptions: (
-    graphPath: GraphPathForm,
-    stepIndex: number,
-    predicate: string,
-  ) => string[];
-};
+export type StartPredicateOptionGetter = (graphPath: GraphPathForm) => string[];
+export type StartValueOptionGetter = (
+  graphPath: GraphPathForm,
+  predicate: string,
+) => string[];
+export type StepPredicateOptionGetter = (
+  graphPath: GraphPathForm,
+  stepIndex: number,
+) => string[];
+export type StepWherePredicateOptionGetter = (
+  graphPath: GraphPathForm,
+  stepIndex: number,
+) => string[];
+export type StepWhereValueOptionGetter = (
+  graphPath: GraphPathForm,
+  stepIndex: number,
+  predicate: string,
+) => string[];
 
 function parseValueTokens(valueExpr: string): string[] {
   return valueExpr
@@ -256,45 +257,67 @@ function getStepEntryShapes(
   return candidates;
 }
 
-export function createGraphPathOptionResolver(
-  dataSchema: DataSchemaJsonView | null,
-): GraphPathOptionResolver {
-  const shapeIndex = createShapeIndex(dataSchema);
+function createShapeIndexForDataSchema(dataSchema: DataSchemaJsonView | null): ShapeIndex {
+  return createShapeIndex(dataSchema);
+}
 
-  return {
-    getStartPredicateOptions(_graphPath) {
-      return getPredicateOptionsForShapes(shapeIndex.shapeIds, shapeIndex);
-    },
-    getStartValueOptions(graphPath, predicate) {
-      void graphPath;
-      return getValueOptionsForShapes(shapeIndex.shapeIds, predicate, shapeIndex);
-    },
-    getStepPredicateOptions(graphPath, stepIndex) {
-      const entry = getStepEntryShapes(graphPath, stepIndex, shapeIndex);
-      return getPredicateOptionsForShapes(entry, shapeIndex);
-    },
-    getStepWherePredicateOptions(graphPath, stepIndex) {
-      const entry = getStepEntryShapes(graphPath, stepIndex, shapeIndex);
-      const step = graphPath.steps[stepIndex];
-      const traversed = traverseByPredicate(
-        entry,
-        step?.predicate ?? "",
-        Boolean(step?.inverse),
-        shapeIndex,
-      );
-      return getPredicateOptionsForShapes(traversed, shapeIndex);
-    },
-    getStepWhereValueOptions(graphPath, stepIndex, predicate) {
-      const entry = getStepEntryShapes(graphPath, stepIndex, shapeIndex);
-      const step = graphPath.steps[stepIndex];
-      const traversed = traverseByPredicate(
-        entry,
-        step?.predicate ?? "",
-        Boolean(step?.inverse),
-        shapeIndex,
-      );
-      return getValueOptionsForShapes(traversed, predicate, shapeIndex);
-    },
+export function createStartPredicateOptionGetter(
+  dataSchema: DataSchemaJsonView | null,
+): StartPredicateOptionGetter {
+  const shapeIndex = createShapeIndexForDataSchema(dataSchema);
+  return (_graphPath) =>
+    getPredicateOptionsForShapes(shapeIndex.shapeIds, shapeIndex);
+}
+
+export function createStartValueOptionGetter(
+  dataSchema: DataSchemaJsonView | null,
+): StartValueOptionGetter {
+  const shapeIndex = createShapeIndexForDataSchema(dataSchema);
+  return (_graphPath, predicate) =>
+    getValueOptionsForShapes(shapeIndex.shapeIds, predicate, shapeIndex);
+}
+
+export function createStepPredicateOptionGetter(
+  dataSchema: DataSchemaJsonView | null,
+): StepPredicateOptionGetter {
+  const shapeIndex = createShapeIndexForDataSchema(dataSchema);
+  return (graphPath, stepIndex) => {
+    const entry = getStepEntryShapes(graphPath, stepIndex, shapeIndex);
+    return getPredicateOptionsForShapes(entry, shapeIndex);
+  };
+}
+
+export function createStepWherePredicateOptionGetter(
+  dataSchema: DataSchemaJsonView | null,
+): StepWherePredicateOptionGetter {
+  const shapeIndex = createShapeIndex(dataSchema);
+  return (graphPath, stepIndex) => {
+    const entry = getStepEntryShapes(graphPath, stepIndex, shapeIndex);
+    const step = graphPath.steps[stepIndex];
+    const traversed = traverseByPredicate(
+      entry,
+      step?.predicate ?? "",
+      Boolean(step?.inverse),
+      shapeIndex,
+    );
+    return getPredicateOptionsForShapes(traversed, shapeIndex);
+  };
+}
+
+export function createStepWhereValueOptionGetter(
+  dataSchema: DataSchemaJsonView | null,
+): StepWhereValueOptionGetter {
+  const shapeIndex = createShapeIndex(dataSchema);
+  return (graphPath, stepIndex, predicate) => {
+    const entry = getStepEntryShapes(graphPath, stepIndex, shapeIndex);
+    const step = graphPath.steps[stepIndex];
+    const traversed = traverseByPredicate(
+      entry,
+      step?.predicate ?? "",
+      Boolean(step?.inverse),
+      shapeIndex,
+    );
+    return getValueOptionsForShapes(traversed, predicate, shapeIndex);
   };
 }
 

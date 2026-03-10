@@ -1,24 +1,38 @@
 import React from "react";
 import type { GraphPathForm } from "../types";
 import { createEmptyNodeFilter, createEmptyStep } from "../types";
-import type { GraphPathOptionResolver } from "../utils/graphPathOptionResolver";
+import type {
+  StartPredicateOptionGetter,
+  StartValueOptionGetter,
+  StepPredicateOptionGetter,
+  StepWherePredicateOptionGetter,
+  StepWhereValueOptionGetter,
+} from "../utils/graphPathOptionResolver";
 
 type Props = {
   value: GraphPathForm;
   predicateOptions: string[];
-  optionResolver: GraphPathOptionResolver;
+  getStartPredicateOptions: StartPredicateOptionGetter;
+  getStartValueOptions: StartValueOptionGetter;
+  getStepPredicateOptions: StepPredicateOptionGetter;
+  getStepWherePredicateOptions: StepWherePredicateOptionGetter;
+  getStepWhereValueOptions: StepWhereValueOptionGetter;
   onChange: (next: GraphPathForm) => void;
 };
 
 export function GraphPathBuilder({
   value,
   predicateOptions,
-  optionResolver,
+  getStartPredicateOptions,
+  getStartValueOptions,
+  getStepPredicateOptions,
+  getStepWherePredicateOptions,
+  getStepWhereValueOptions,
   onChange,
 }: Props) {
   const safePredicateOptions =
     predicateOptions.length > 0 ? predicateOptions : [""];
-  const startPredicateOptions = optionResolver.getStartPredicateOptions(value);
+  const startPredicateOptions = getStartPredicateOptions(value);
   const safeStartPredicateOptions =
     startPredicateOptions.length > 0 ? startPredicateOptions : safePredicateOptions;
 
@@ -26,7 +40,7 @@ export function GraphPathBuilder({
     <div style={{ border: "1px solid rgba(0,0,0,0.2)", borderRadius: 8, padding: 10 }}>
       <div style={{ fontWeight: 600, marginBottom: 6 }}>Start filters</div>
       {value.where.map((filter) => {
-        const valueOptionsForPredicate = optionResolver.getStartValueOptions(
+        const valueOptionsForPredicate = getStartValueOptions(
           value,
           filter.predicate,
         );
@@ -109,10 +123,10 @@ export function GraphPathBuilder({
 
       <div style={{ fontWeight: 600, margin: "10px 0 6px 0" }}>Traversal steps</div>
       {value.steps.map((step, stepIndex) => {
-        const stepPredicateOptions = optionResolver.getStepPredicateOptions(value, stepIndex);
+        const stepPredicateOptions = getStepPredicateOptions(value, stepIndex);
         const safeStepPredicateOptions =
           stepPredicateOptions.length > 0 ? stepPredicateOptions : safePredicateOptions;
-        const stepWherePredicateOptions = optionResolver.getStepWherePredicateOptions(
+        const stepWherePredicateOptions = getStepWherePredicateOptions(
           value,
           stepIndex,
         );
@@ -182,7 +196,7 @@ export function GraphPathBuilder({
           </div>
           <div style={{ fontWeight: 600, marginBottom: 6 }}>Where filters</div>
           {step.where.map((filter) => {
-            const options = optionResolver.getStepWhereValueOptions(
+            const options = getStepWhereValueOptions(
               value,
               stepIndex,
               filter.predicate,

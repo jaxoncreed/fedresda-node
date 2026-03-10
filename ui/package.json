@@ -1,5 +1,5 @@
 {
-  "name": "setmeld-pod-linked-data-browser",
+  "name": "@fedresda/ui",
   "main": "index.js",
   "version": "0.0.0",
   "engines": {
@@ -14,12 +14,13 @@
     "build:standalone": "expo export -p web --output-dir dist-standalone && node scripts/adjust-standalone-paths.js",
     "build:server": "EXPO_PUBLIC_IS_SERVER_HOSTED=true expo export -p web --output-dir dist-server && node scripts/adjust-server-paths.js",
     "build:server:watch": "npm run build && npx chokidar '**/*' -i 'dist-standalone/**' -i 'dist-server/**' -i 'node_modules/**' -c 'npm run build:server'",
-    "build:ldo": "ldo build --input .shapes --output .ldo",
     "build": "npm run build:standalone && npm run build:server"
   },
   "dependencies": {
-    "@ldo/ldo": "^1.0.0-alpha.32",
-    "@ldo/solid-react": "^1.0.0-alpha.32",
+    "@expo/metro-runtime": "~5.0.5",
+    "@fedresda/types": "*",
+    "@ldo/ldo": "^1.0.0-alpha.38",
+    "@ldo/solid-react": "^1.0.0-alpha.38",
     "expo": "^53.0.9",
     "json-schema": "^0.4.0",
     "linked-data-browser": "^0.0.8-alpha.5",
@@ -37,10 +38,11 @@
   "devDependencies": {
     "@babel/core": "^7.26.0",
     "@babel/plugin-syntax-import-meta": "^7.10.4",
-    "@ldo/cli": "^1.0.0-alpha.32",
     "@react-native-community/eslint-config": "^3.2.0",
     "@types/json-schema": "^7.0.15",
     "@types/jsonld": "^1.5.15",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "@types/shexj": "^2.1.7",
     "chokidar-cli": "^3.0.0",
     "concurrently": "^9.1.2",
@@ -49,5 +51,5 @@
     "prettier": "^3.5.3",
     "typescript": "^5.8.3"
   },
-  "private": false
+  "private": true
 }
