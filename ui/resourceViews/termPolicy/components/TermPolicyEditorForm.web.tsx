@@ -1,10 +1,15 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { Text } from "linked-data-browser";
-import type { Schema } from "shexj";
-import type { StatisticPolicy } from "../types";
+import type { StatisticPolicy, TermPolicySchemas } from "../types";
 import { createEmptyGraphPath, makeId } from "../types";
-import type { GraphPathOptionResolver } from "../utils/graphPathOptionResolver";
+import type {
+  StartPredicateOptionGetter,
+  StartValueOptionGetter,
+  StepPredicateOptionGetter,
+  StepWherePredicateOptionGetter,
+  StepWhereValueOptionGetter,
+} from "../utils/graphPathOptionResolver";
 import { GraphPathInput } from "./GraphPathInput.web";
 import { GraphPathBuilder } from "./GraphPathBuilder.web";
 
@@ -12,7 +17,7 @@ type Props = {
   error: string | null;
   saveMessage: string | null;
   dataSchemaName: string | null;
-  termPolicySchemas: Record<string, Schema>;
+  termPolicySchemas: TermPolicySchemas;
   statisticPolicies: StatisticPolicy[];
   setStatisticPolicies: React.Dispatch<React.SetStateAction<StatisticPolicy[]>>;
   statisticNames: string[];
@@ -20,7 +25,11 @@ type Props = {
   setNewStatisticName: (value: string) => void;
   predicateOptions: string[];
   filterValueOptions: string[];
-  graphPathOptionResolver: GraphPathOptionResolver;
+  getStartPredicateOptions: StartPredicateOptionGetter;
+  getStartValueOptions: StartValueOptionGetter;
+  getStepPredicateOptions: StepPredicateOptionGetter;
+  getStepWherePredicateOptions: StepWherePredicateOptionGetter;
+  getStepWhereValueOptions: StepWhereValueOptionGetter;
   addStatisticPolicy: () => void;
   save: () => Promise<void>;
   isSaving: boolean;
@@ -38,7 +47,11 @@ export function TermPolicyEditorForm({
   setNewStatisticName,
   predicateOptions,
   filterValueOptions,
-  graphPathOptionResolver,
+  getStartPredicateOptions,
+  getStartValueOptions,
+  getStepPredicateOptions,
+  getStepWherePredicateOptions,
+  getStepWhereValueOptions,
   addStatisticPolicy,
   save,
   isSaving,
@@ -54,7 +67,7 @@ export function TermPolicyEditorForm({
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.key}>Add statistic policy</Text>
+        <Text style={styles.key}>Add statistic plugin policy</Text>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <select
             value={newStatisticName}
@@ -138,7 +151,11 @@ export function TermPolicyEditorForm({
                   <GraphPathBuilder
                     value={allowedPath.graphPath}
                     predicateOptions={predicateOptions}
-                    optionResolver={graphPathOptionResolver}
+                    getStartPredicateOptions={getStartPredicateOptions}
+                    getStartValueOptions={getStartValueOptions}
+                    getStepPredicateOptions={getStepPredicateOptions}
+                    getStepWherePredicateOptions={getStepWherePredicateOptions}
+                    getStepWhereValueOptions={getStepWhereValueOptions}
                     onChange={(nextGraphPath) =>
                       setStatisticPolicies((prev) =>
                         prev.map((p) =>
@@ -297,10 +314,10 @@ export function TermPolicyEditorForm({
       ))}
 
       <View style={styles.card}>
-        <Text style={styles.key}>Schemas (JSON ShexJ)</Text>
+        <Text style={styles.key}>Term policy schemas (ShexJ)</Text>
         {Object.entries(termPolicySchemas).map(([name, schema]) => (
           <View key={name} style={styles.schemaBlock}>
-            <Text style={styles.key}>{name}</Text>
+            <Text style={styles.key}>{name} statistic plugin</Text>
             <Text style={styles.schema} selectable>
               {JSON.stringify(schema, null, 2)}
             </Text>

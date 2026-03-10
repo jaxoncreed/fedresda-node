@@ -24,7 +24,7 @@ export const TermPolicyView: FunctionComponent = () => {
         Term Policy Editor
       </Text>
       <Text style={styles.subtitle}>
-        Configure statistics policies from ShexJ schemas and save as Turtle.
+        Configure statistic plugin policies from term policy schemas and save as Turtle.
       </Text>
       <TermPolicyEditorForm
         error={editor.error}
@@ -38,7 +38,11 @@ export const TermPolicyView: FunctionComponent = () => {
         setNewStatisticName={editor.setNewStatisticName}
         predicateOptions={editor.predicateOptions}
         filterValueOptions={editor.filterValueOptions}
-        graphPathOptionResolver={editor.graphPathOptionResolver}
+        getStartPredicateOptions={editor.getStartPredicateOptions}
+        getStartValueOptions={editor.getStartValueOptions}
+        getStepPredicateOptions={editor.getStepPredicateOptions}
+        getStepWherePredicateOptions={editor.getStepWherePredicateOptions}
+        getStepWhereValueOptions={editor.getStepWhereValueOptions}
         addStatisticPolicy={editor.addStatisticPolicy}
         save={editor.save}
         isSaving={editor.isSaving}

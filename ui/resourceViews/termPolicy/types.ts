@@ -1,5 +1,6 @@
 import type { Schema } from "shexj";
 
+// Data schema: describes the RDF structure used by a data document.
 export type DataSchemaJsonTripleConstraint = {
   predicate: string;
   valueExpr: string;
@@ -39,11 +40,13 @@ export type KaplanMeierStatisticPolicy = {
 
 export type StatisticPolicy = MeanStatisticPolicy | KaplanMeierStatisticPolicy;
 
+// Term policy: RDF document describing plugin-specific policies for one data document.
 export type TermPolicyLoadResult = {
   dataSchemaName: string | null;
   statisticPolicies: StatisticPolicy[];
 };
 
+// Term policy schema: plugin-specific shape of term policy entries.
 export type TermPolicySchemas = Record<string, Schema>;
 
 export function makeId(prefix: string): string {

@@ -2,7 +2,7 @@
   "@context": [
     "https://linkedsoftwaredependencies.org/bundles/npm/@solid/community-server/^8.0.0/components/context.jsonld",
     "https://linkedsoftwaredependencies.org/bundles/npm/asynchronous-handlers/^1.0.0/components/context.jsonld",
-    "https://linkedsoftwaredependencies.org/bundles/npm/@fedresday/server/^0.0.0/components/context.jsonld"
+    "https://linkedsoftwaredependencies.org/bundles/npm/@fedresda/server/^0.0.0/components/context.jsonld"
   ],
   "@graph": [
     {
@@ -51,6 +51,9 @@
       },
       "rootFilePath": {
         "@id": "urn:solid-server:default:variable:rootFilePath"
+      },
+      "resourceStore": {
+        "@id": "urn:solid-server:default:ResourceStore_Backend"
       }
     },
     {

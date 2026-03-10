@@ -15,8 +15,8 @@ import { useResource, useMatchSubject, useSolidAuth } from '@ldo/solid-react';
 import { getDataset } from '@ldo/ldo';
 import { namedNode } from '@ldo/rdf-utils';
 import { ChevronDown, ChevronRight, ChevronsDown, ChevronsUp } from 'lucide-react-native';
-import { PersonShapeType } from '../../shared/schemas';
-import type { Person } from '../../shared/schemas';
+import { PersonShapeType } from '@fedresda/types';
+import type { Person } from '@fedresda/types';
 
 const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
 const GIST_PERSON = 'https://w3id.org/semanticarts/ns/ontology/gist/Person';

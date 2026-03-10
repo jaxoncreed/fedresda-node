@@ -3,6 +3,7 @@ vendor
 *.deb
 
 node_modules
+.nx
 dist
 data
 old-data
