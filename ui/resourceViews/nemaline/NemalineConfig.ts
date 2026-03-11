@@ -16,8 +16,8 @@ export const NemalineConfig: ResourceViewConfig = {
     if (!targetResource.isDataResource?.()) return false;
     const persons = dataset
       .usingType(PersonShapeType)
-      .matchSubject(RDF_TYPE, GIST_PERSON);
-    const count = persons?.size ?? persons?.toArray?.()?.length ?? 0;
+      .matchSubject(RDF_TYPE, GIST_PERSON, targetResource.uri);
+    const count = persons?.size ?? 0;
     return count > 0;
   },
 };
