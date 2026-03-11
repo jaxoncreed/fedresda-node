@@ -43,6 +43,7 @@ export const TermPolicyView: FunctionComponent = () => {
         getStepPredicateOptions={editor.getStepPredicateOptions}
         getStepWherePredicateOptions={editor.getStepWherePredicateOptions}
         getStepWhereValueOptions={editor.getStepWhereValueOptions}
+        getStepTargetShapeNames={editor.getStepTargetShapeNames}
         addStatisticPolicy={editor.addStatisticPolicy}
         save={editor.save}
         isSaving={editor.isSaving}

@@ -5,6 +5,7 @@ import type {
   StartPredicateOptionGetter,
   StartValueOptionGetter,
   StepPredicateOptionGetter,
+  StepTargetShapeNameGetter,
   StepWherePredicateOptionGetter,
   StepWhereValueOptionGetter,
 } from "../utils/graphPathOptionResolver";
@@ -17,6 +18,7 @@ type Props = {
   getStepPredicateOptions: StepPredicateOptionGetter;
   getStepWherePredicateOptions: StepWherePredicateOptionGetter;
   getStepWhereValueOptions: StepWhereValueOptionGetter;
+  getStepTargetShapeNames: StepTargetShapeNameGetter;
   onChange: (next: GraphPathForm) => void;
 };
 
@@ -28,6 +30,7 @@ export function GraphPathBuilder({
   getStepPredicateOptions,
   getStepWherePredicateOptions,
   getStepWhereValueOptions,
+  getStepTargetShapeNames,
   onChange,
 }: Props) {
   const safePredicateOptions =
@@ -134,6 +137,9 @@ export function GraphPathBuilder({
           stepWherePredicateOptions.length > 0
             ? stepWherePredicateOptions
             : safePredicateOptions;
+        const targetShapeNames = getStepTargetShapeNames(value, stepIndex);
+        const targetShapeLabel =
+          targetShapeNames.length > 0 ? targetShapeNames.join(", ") : "(no matching shape)";
         return (
           <div
             key={step.id}
@@ -154,6 +160,9 @@ export function GraphPathBuilder({
             >
               Remove
             </button>
+          </div>
+          <div style={{ marginBottom: 8, color: "rgba(0,0,0,0.75)" }}>
+            <strong>Current shape:</strong> {targetShapeLabel}
           </div>
 
           <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>

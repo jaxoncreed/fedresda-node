@@ -7,6 +7,7 @@ import type {
   StartPredicateOptionGetter,
   StartValueOptionGetter,
   StepPredicateOptionGetter,
+  StepTargetShapeNameGetter,
   StepWherePredicateOptionGetter,
   StepWhereValueOptionGetter,
 } from "../utils/graphPathOptionResolver";
@@ -30,6 +31,7 @@ type Props = {
   getStepPredicateOptions: StepPredicateOptionGetter;
   getStepWherePredicateOptions: StepWherePredicateOptionGetter;
   getStepWhereValueOptions: StepWhereValueOptionGetter;
+  getStepTargetShapeNames: StepTargetShapeNameGetter;
   addStatisticPolicy: () => void;
   save: () => Promise<void>;
   isSaving: boolean;
@@ -52,6 +54,7 @@ export function TermPolicyEditorForm({
   getStepPredicateOptions,
   getStepWherePredicateOptions,
   getStepWhereValueOptions,
+  getStepTargetShapeNames,
   addStatisticPolicy,
   save,
   isSaving,
@@ -156,6 +159,7 @@ export function TermPolicyEditorForm({
                     getStepPredicateOptions={getStepPredicateOptions}
                     getStepWherePredicateOptions={getStepWherePredicateOptions}
                     getStepWhereValueOptions={getStepWhereValueOptions}
+                    getStepTargetShapeNames={getStepTargetShapeNames}
                     onChange={(nextGraphPath) =>
                       setStatisticPolicies((prev) =>
                         prev.map((p) =>
