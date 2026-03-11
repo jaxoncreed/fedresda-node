@@ -4,7 +4,6 @@ import type {
   StatisticPolicy,
   TermPolicySchemas,
 } from "../types";
-import { createEmptyGraphPath, makeId } from "../types";
 import {
   buildTermPolicyTurtle,
   getTermPolicyTtlUri,
@@ -12,7 +11,6 @@ import {
 } from "../utils/termPolicyRdf";
 import {
   extractPredicateOptions,
-  extractValueOptions,
 } from "../utils/schemaOptions";
 import {
   createEmptyGraphPathOptionGetters,
@@ -20,6 +18,14 @@ import {
 } from "../utils/graphPathOptionResolver";
 import { asJsonDataSchema, findDataSchema } from "../dataSchemas";
 import { getTermPolicySchemasByStatisticPlugin } from "../statisticPlugins";
+import { createDefaultStatisticPolicy } from "../utils/termPolicySchemaForm";
+
+function createSnapshot(
+  dataSchemaName: string | null,
+  statisticPolicies: StatisticPolicy[],
+): string {
+  return JSON.stringify({ dataSchemaName, statisticPolicies });
+}
 
 function getDataSchema(schemaName: string): DataSchemaJsonView {
   const schema = findDataSchema(schemaName);
@@ -44,6 +50,7 @@ export function useTermPolicyEditorData(
   const [dataSchema, setDataSchema] = useState<DataSchemaJsonView | null>(null);
   const [statisticPolicies, setStatisticPolicies] = useState<StatisticPolicy[]>([]);
   const [newStatisticName, setNewStatisticName] = useState<string>("");
+  const [initialSnapshot, setInitialSnapshot] = useState<string | null>(null);
 
   useEffect(() => {
     if (!targetUri) return;
@@ -51,19 +58,23 @@ export function useTermPolicyEditorData(
     setIsLoading(true);
     setError(null);
     setSaveMessage(null);
+    setInitialSnapshot(null);
+    const schemas = getTermPolicySchemasByStatisticPlugin();
+    setTermPolicySchemas(schemas);
 
-    Promise.resolve(loadTermPolicy(authFetch, targetUri))
+    Promise.resolve(loadTermPolicy(authFetch, targetUri, schemas))
       .then((termPolicy) => {
-        const schemas = getTermPolicySchemasByStatisticPlugin();
         let loadedDataSchema: DataSchemaJsonView | null = null;
         if (termPolicy.dataSchemaName) {
           loadedDataSchema = getDataSchema(termPolicy.dataSchemaName);
         }
         if (cancelled) return;
-        setTermPolicySchemas(schemas);
         setDataSchemaName(termPolicy.dataSchemaName);
         setDataSchema(loadedDataSchema);
         setStatisticPolicies(termPolicy.statisticPolicies);
+        setInitialSnapshot(
+          createSnapshot(termPolicy.dataSchemaName, termPolicy.statisticPolicies),
+        );
         setIsLoading(false);
       })
       .catch((e) => {
@@ -79,10 +90,6 @@ export function useTermPolicyEditorData(
 
   const predicateOptions = useMemo(
     () => extractPredicateOptions(dataSchema),
-    [dataSchema],
-  );
-  const filterValueOptions = useMemo(
-    () => extractValueOptions(dataSchema),
     [dataSchema],
   );
   const emptyGetters = useMemo(() => createEmptyGraphPathOptionGetters(), []);
@@ -107,6 +114,14 @@ export function useTermPolicyEditorData(
     () => Object.keys(termPolicySchemas).sort(),
     [termPolicySchemas],
   );
+  const currentSnapshot = useMemo(
+    () => createSnapshot(dataSchemaName, statisticPolicies),
+    [dataSchemaName, statisticPolicies],
+  );
+  const isDirty = useMemo(
+    () => initialSnapshot !== null && currentSnapshot !== initialSnapshot,
+    [currentSnapshot, initialSnapshot],
+  );
 
   useEffect(() => {
     if (!newStatisticName && statisticNames.length > 0) {
@@ -117,36 +132,12 @@ export function useTermPolicyEditorData(
   const addStatisticPolicy = () => {
     const selected = newStatisticName || statisticNames[0];
     if (!selected) return;
-    if (selected === "mean") {
-      setStatisticPolicies((prev) => [
-        ...prev,
-        {
-          id: makeId("stat"),
-          statisticName: "mean",
-          allowedPaths: [
-            {
-              id: makeId("allowed"),
-              graphPath: createEmptyGraphPath(),
-              minValues: 1,
-              filterValue: "",
-            },
-          ],
-        },
-      ]);
-      return;
-    }
-    if (selected === "kaplan-meier") {
-      setStatisticPolicies((prev) => [
-        ...prev,
-        {
-          id: makeId("stat"),
-          statisticName: "kaplan-meier",
-          cohortPath: predicateOptions.slice(0, 1),
-          eventPath: predicateOptions.slice(0, 1),
-          timePath: predicateOptions.slice(0, 1),
-        },
-      ]);
-    }
+    const schema = termPolicySchemas[selected];
+    if (!schema) return;
+    setStatisticPolicies((prev) => [
+      ...prev,
+      createDefaultStatisticPolicy(selected, schema),
+    ]);
   };
 
   const save = async () => {
@@ -155,7 +146,11 @@ export function useTermPolicyEditorData(
     setSaveMessage(null);
     setError(null);
     try {
-      const ttl = buildTermPolicyTurtle(dataSchemaName, statisticPolicies);
+      const ttl = buildTermPolicyTurtle(
+        dataSchemaName,
+        statisticPolicies,
+        termPolicySchemas,
+      );
       const saveUri = getTermPolicyTtlUri(targetUri);
       const res = await authFetch(saveUri, {
         method: "PUT",
@@ -168,6 +163,7 @@ export function useTermPolicyEditorData(
         throw new Error((await res.text()) || `Save failed: ${res.status}`);
       }
       setSaveMessage(`Saved term policy to ${saveUri}`);
+      setInitialSnapshot(currentSnapshot);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -189,13 +185,13 @@ export function useTermPolicyEditorData(
     newStatisticName,
     setNewStatisticName,
     predicateOptions,
-    filterValueOptions,
     getStartPredicateOptions: graphPathGetters.getStartPredicateOptions,
     getStartValueOptions: graphPathGetters.getStartValueOptions,
     getStepPredicateOptions: graphPathGetters.getStepPredicateOptions,
     getStepWherePredicateOptions: graphPathGetters.getStepWherePredicateOptions,
     getStepWhereValueOptions: graphPathGetters.getStepWhereValueOptions,
     getStepTargetShapeNames: graphPathGetters.getStepTargetShapeNames,
+    isDirty,
     addStatisticPolicy,
     save,
   };

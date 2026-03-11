@@ -37,13 +37,13 @@ export const TermPolicyView: FunctionComponent = () => {
         newStatisticName={editor.newStatisticName}
         setNewStatisticName={editor.setNewStatisticName}
         predicateOptions={editor.predicateOptions}
-        filterValueOptions={editor.filterValueOptions}
         getStartPredicateOptions={editor.getStartPredicateOptions}
         getStartValueOptions={editor.getStartValueOptions}
         getStepPredicateOptions={editor.getStepPredicateOptions}
         getStepWherePredicateOptions={editor.getStepWherePredicateOptions}
         getStepWhereValueOptions={editor.getStepWhereValueOptions}
         getStepTargetShapeNames={editor.getStepTargetShapeNames}
+        isDirty={editor.isDirty}
         addStatisticPolicy={editor.addStatisticPolicy}
         save={editor.save}
         isSaving={editor.isSaving}
