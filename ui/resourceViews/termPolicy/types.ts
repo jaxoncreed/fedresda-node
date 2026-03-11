@@ -17,28 +17,25 @@ export type DataSchemaJsonView = {
   shapes?: DataSchemaJsonShape[];
 };
 
-export type MeanAllowedPath = {
+export type TermPolicyScalarValue = string | number | boolean;
+
+export type TermPolicyObjectValue = {
   id: string;
-  graphPath: GraphPathForm;
-  minValues: number;
-  filterValue: string;
+  values: Record<string, TermPolicyValue>;
 };
 
-export type MeanStatisticPolicy = {
-  id: string;
-  statisticName: "mean";
-  allowedPaths: MeanAllowedPath[];
-};
+export type TermPolicyValue =
+  | TermPolicyScalarValue
+  | GraphPathForm
+  | TermPolicyScalarValue[]
+  | GraphPathForm[]
+  | TermPolicyObjectValue[];
 
-export type KaplanMeierStatisticPolicy = {
+export type StatisticPolicy = {
   id: string;
-  statisticName: "kaplan-meier";
-  cohortPath: string[];
-  eventPath: string[];
-  timePath: string[];
+  statisticName: string;
+  values: Record<string, TermPolicyValue>;
 };
-
-export type StatisticPolicy = MeanStatisticPolicy | KaplanMeierStatisticPolicy;
 
 // Term policy: RDF document describing plugin-specific policies for one data document.
 export type TermPolicyLoadResult = {
@@ -91,7 +88,7 @@ export function createEmptyStep(): GraphTraversalStepForm {
 export function createEmptyGraphPath(): GraphPathForm {
   return {
     where: [],
-    steps: [createEmptyStep()],
+    steps: [],
   };
 }
 

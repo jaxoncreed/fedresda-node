@@ -1,7 +1,14 @@
 import React from "react";
+import { Database, Plus, Save, Trash2 } from "lucide-react-native";
 import { StyleSheet, View } from "react-native";
 import { Text } from "linked-data-browser";
-import type { StatisticPolicy, TermPolicySchemas } from "../types";
+import type {
+  GraphPathForm,
+  StatisticPolicy,
+  TermPolicyObjectValue,
+  TermPolicyScalarValue,
+  TermPolicySchemas,
+} from "../types";
 import { createEmptyGraphPath, makeId } from "../types";
 import type {
   StartPredicateOptionGetter,
@@ -11,7 +18,11 @@ import type {
   StepWherePredicateOptionGetter,
   StepWhereValueOptionGetter,
 } from "../utils/graphPathOptionResolver";
-import { GraphPathInput } from "./GraphPathInput.web";
+import {
+  getGraphPathFromValue,
+  getPolicyFieldDefinitions,
+  type SchemaFieldDefinition,
+} from "../utils/termPolicySchemaForm";
 import { GraphPathBuilder } from "./GraphPathBuilder.web";
 
 type Props = {
@@ -25,17 +36,80 @@ type Props = {
   newStatisticName: string;
   setNewStatisticName: (value: string) => void;
   predicateOptions: string[];
-  filterValueOptions: string[];
   getStartPredicateOptions: StartPredicateOptionGetter;
   getStartValueOptions: StartValueOptionGetter;
   getStepPredicateOptions: StepPredicateOptionGetter;
   getStepWherePredicateOptions: StepWherePredicateOptionGetter;
   getStepWhereValueOptions: StepWhereValueOptionGetter;
   getStepTargetShapeNames: StepTargetShapeNameGetter;
+  isDirty: boolean;
   addStatisticPolicy: () => void;
   save: () => Promise<void>;
   isSaving: boolean;
 };
+
+const separator = { borderBottom: "1px solid rgba(0,0,0,0.08)", paddingBottom: 12, marginBottom: 12 };
+const policyCard = {
+  border: "1px solid rgba(0,0,0,0.12)",
+  borderRadius: 12,
+  padding: 14,
+  marginBottom: 12,
+  backgroundColor: "rgba(255,255,255,0.92)",
+};
+const labelCell = { fontSize: 13, fontWeight: 500 };
+const textInputBase = {
+  minHeight: 34,
+  borderRadius: 8,
+  border: "1px solid rgba(0,0,0,0.16)",
+  padding: "0 10px",
+  backgroundColor: "white",
+};
+const actionBtn = {
+  minHeight: 32,
+  borderRadius: 8,
+  border: "1px solid rgba(0,0,0,0.12)",
+  padding: "0 10px",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+  backgroundColor: "rgba(0,0,0,0.02)",
+};
+const rowStyle = {
+  display: "grid",
+  gridTemplateColumns: "120px 1fr",
+  gap: 8,
+  marginBottom: 10,
+  alignItems: "center",
+};
+
+function renderScalarInput(
+  value: TermPolicyScalarValue,
+  field: SchemaFieldDefinition,
+  onChange: (next: TermPolicyScalarValue) => void,
+) {
+  if (field.type === "integer") {
+    return (
+      <input
+        type="number"
+        min={1}
+        value={typeof value === "number" ? value : Number(value || 1)}
+        onChange={(e) => onChange(Math.max(1, Number(e.target.value || "1")))}
+        style={textInputBase}
+      />
+    );
+  }
+  if (field.type === "boolean") {
+    return <input type="checkbox" checked={Boolean(value)} onChange={(e) => onChange(e.target.checked)} />;
+  }
+  return (
+    <input
+      type="text"
+      value={typeof value === "string" ? value : String(value ?? "")}
+      onChange={(e) => onChange(e.target.value)}
+      style={textInputBase}
+    />
+  );
+}
 
 export function TermPolicyEditorForm({
   error,
@@ -48,289 +122,317 @@ export function TermPolicyEditorForm({
   newStatisticName,
   setNewStatisticName,
   predicateOptions,
-  filterValueOptions,
   getStartPredicateOptions,
   getStartValueOptions,
   getStepPredicateOptions,
   getStepWherePredicateOptions,
   getStepWhereValueOptions,
   getStepTargetShapeNames,
+  isDirty,
   addStatisticPolicy,
   save,
   isSaving,
 }: Props) {
+  const updatePolicy = (id: string, updater: (policy: StatisticPolicy) => StatisticPolicy) =>
+    setStatisticPolicies((prev) => prev.map((policy) => (policy.id === id ? updater(policy) : policy)));
+
   return (
     <>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {saveMessage ? <Text style={styles.success}>{saveMessage}</Text> : null}
 
-      <View style={styles.card}>
-        <Text style={styles.key}>Data schema</Text>
-        <Text>{dataSchemaName ?? "not configured"}</Text>
-      </View>
+      <div style={separator}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <Database size={16} color="currentColor" />
+          <strong>Data schema</strong>
+        </div>
+        <div style={{ marginTop: 6, opacity: 0.8 }}>{dataSchemaName ?? "not configured"}</div>
+      </div>
 
-      <View style={styles.card}>
-        <Text style={styles.key}>Add statistic plugin policy</Text>
+      <div style={separator}>
+        <div style={{ marginBottom: 8, fontWeight: 600 }}>Add statistic plugin policy</div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <select
             value={newStatisticName}
             onChange={(e) => setNewStatisticName(e.target.value)}
-            style={{ minHeight: 32, minWidth: 220 }}
+            style={{ ...textInputBase, minWidth: 220 }}
           >
             {statisticNames.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
+              <option key={name} value={name}>{name}</option>
             ))}
           </select>
-          <button type="button" onClick={addStatisticPolicy}>
+          <button type="button" onClick={addStatisticPolicy} style={actionBtn}>
+            <Plus size={14} color="currentColor" />
             Add
           </button>
         </div>
-      </View>
+      </div>
 
-      {statisticPolicies.map((policy, policyIndex) => (
-        <View key={policy.id} style={styles.card}>
-          <div
-            style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
-          >
-            <Text style={styles.key}>
-              {policyIndex + 1}. {policy.statisticName}
-            </Text>
-            <button
-              type="button"
-              onClick={() =>
-                setStatisticPolicies((prev) => prev.filter((p) => p.id !== policy.id))
-              }
-            >
-              Remove
-            </button>
-          </div>
+      {statisticPolicies.length > 0 ? (
+        <div style={{ marginBottom: 8, fontSize: 12, letterSpacing: 0.4, opacity: 0.7 }}>
+          STATISTIC PLUGIN POLICIES
+        </div>
+      ) : null}
 
-          {policy.statisticName === "mean" ? (
-            <div>
-              {policy.allowedPaths.map((allowedPath, allowedPathIndex) => (
-                <div
-                  key={allowedPath.id}
-                  style={{
-                    border: "1px solid rgba(0,0,0,0.2)",
-                    borderRadius: 8,
-                    padding: 10,
-                    marginBottom: 10,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: 8,
-                    }}
-                  >
-                    <Text style={{ fontWeight: "600" }}>
-                      Allowed path {allowedPathIndex + 1}
-                    </Text>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setStatisticPolicies((prev) =>
-                          prev.map((p) =>
-                            p.id !== policy.id || p.statisticName !== "mean"
-                              ? p
-                              : {
-                                  ...p,
-                                  allowedPaths: p.allowedPaths.filter(
-                                    (ap) => ap.id !== allowedPath.id,
-                                  ),
-                                },
-                          ),
-                        )
-                      }
-                    >
-                      Remove
-                    </button>
-                  </div>
-
-                  <GraphPathBuilder
-                    value={allowedPath.graphPath}
-                    predicateOptions={predicateOptions}
-                    getStartPredicateOptions={getStartPredicateOptions}
-                    getStartValueOptions={getStartValueOptions}
-                    getStepPredicateOptions={getStepPredicateOptions}
-                    getStepWherePredicateOptions={getStepWherePredicateOptions}
-                    getStepWhereValueOptions={getStepWhereValueOptions}
-                    getStepTargetShapeNames={getStepTargetShapeNames}
-                    onChange={(nextGraphPath) =>
-                      setStatisticPolicies((prev) =>
-                        prev.map((p) =>
-                          p.id !== policy.id || p.statisticName !== "mean"
-                            ? p
-                            : {
-                                ...p,
-                                allowedPaths: p.allowedPaths.map((ap) =>
-                                  ap.id === allowedPath.id
-                                    ? { ...ap, graphPath: nextGraphPath }
-                                    : ap,
-                                ),
-                              },
-                        ),
-                      )
-                    }
-                  />
-
-                  <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                    <label style={{ minWidth: 100 }}>Min values</label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={allowedPath.minValues}
-                      onChange={(e) =>
-                        setStatisticPolicies((prev) =>
-                          prev.map((p) =>
-                            p.id !== policy.id || p.statisticName !== "mean"
-                              ? p
-                              : {
-                                  ...p,
-                                  allowedPaths: p.allowedPaths.map((ap) =>
-                                    ap.id === allowedPath.id
-                                      ? {
-                                          ...ap,
-                                          minValues: Math.max(
-                                            1,
-                                            Number(e.target.value || "1"),
-                                          ),
-                                        }
-                                      : ap,
-                                  ),
-                                },
-                          ),
-                        )
-                      }
-                    />
-                  </div>
-
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <label style={{ minWidth: 100 }}>Filter value</label>
-                    <select
-                      value={allowedPath.filterValue}
-                      onChange={(e) =>
-                        setStatisticPolicies((prev) =>
-                          prev.map((p) =>
-                            p.id !== policy.id || p.statisticName !== "mean"
-                              ? p
-                              : {
-                                  ...p,
-                                  allowedPaths: p.allowedPaths.map((ap) =>
-                                    ap.id === allowedPath.id
-                                      ? { ...ap, filterValue: e.target.value }
-                                      : ap,
-                                  ),
-                                },
-                          ),
-                        )
-                      }
-                      style={{ minHeight: 32, minWidth: 260 }}
-                    >
-                      <option value="">(none)</option>
-                      {filterValueOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              ))}
-
+      {statisticPolicies.map((policy, policyIndex) => {
+        const schema = termPolicySchemas[policy.statisticName];
+        const fields = schema ? getPolicyFieldDefinitions(schema) : [];
+        return (
+          <div key={policy.id} style={policyCard}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <Text style={styles.key}>{policyIndex + 1}. {policy.statisticName}</Text>
               <button
                 type="button"
-                onClick={() =>
-                  setStatisticPolicies((prev) =>
-                    prev.map((p) =>
-                      p.id !== policy.id || p.statisticName !== "mean"
-                        ? p
-                        : {
-                            ...p,
-                            allowedPaths: [
-                              ...p.allowedPaths,
+                style={actionBtn}
+                onClick={() => setStatisticPolicies((prev) => prev.filter((entry) => entry.id !== policy.id))}
+              >
+                <Trash2 size={14} color="currentColor" />
+                Remove
+              </button>
+            </div>
+
+            {fields.map((field) => {
+              const fieldValue = policy.values[field.key];
+
+              if (field.type === "object") {
+                const objects = Array.isArray(fieldValue) ? (fieldValue as TermPolicyObjectValue[]) : [];
+                return (
+                  <div key={field.key} style={{ marginBottom: 10 }}>
+                    <div style={{ fontWeight: 600, marginBottom: 8 }}>{field.label}</div>
+                    {objects.map((item, itemIndex) => (
+                      <div key={item.id} style={{ ...separator, marginBottom: 10 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                          <div>{field.label} {itemIndex + 1}</div>
+                          <button
+                            type="button"
+                            style={actionBtn}
+                            onClick={() =>
+                              updatePolicy(policy.id, (entry) => ({
+                                ...entry,
+                                values: { ...entry.values, [field.key]: objects.filter((x) => x.id !== item.id) },
+                              }))
+                            }
+                          >
+                            <Trash2 size={14} color="currentColor" />
+                            Remove
+                          </button>
+                        </div>
+                        {(field.nestedFields ?? []).map((nestedField) => {
+                          const nestedValue = item.values[nestedField.key];
+                          if (nestedField.type === "graphPath") {
+                            return (
+                              <div key={nestedField.key} style={rowStyle}>
+                                <label style={labelCell}>{nestedField.label}</label>
+                                <GraphPathBuilder
+                                  value={getGraphPathFromValue(nestedValue)}
+                                  predicateOptions={predicateOptions}
+                                  getStartPredicateOptions={getStartPredicateOptions}
+                                  getStartValueOptions={getStartValueOptions}
+                                  getStepPredicateOptions={getStepPredicateOptions}
+                                  getStepWherePredicateOptions={getStepWherePredicateOptions}
+                                  getStepWhereValueOptions={getStepWhereValueOptions}
+                                  getStepTargetShapeNames={getStepTargetShapeNames}
+                                  onChange={(nextGraphPath: GraphPathForm) =>
+                                    updatePolicy(policy.id, (entry) => ({
+                                      ...entry,
+                                      values: {
+                                        ...entry.values,
+                                        [field.key]: objects.map((x) =>
+                                          x.id !== item.id
+                                            ? x
+                                            : {
+                                                ...x,
+                                                values: { ...x.values, [nestedField.key]: nextGraphPath },
+                                              },
+                                        ),
+                                      },
+                                    }))
+                                  }
+                                />
+                              </div>
+                            );
+                          }
+                          if (nestedField.type === "object") return null;
+                          return (
+                            <div key={nestedField.key} style={{ ...rowStyle }}>
+                              <label style={labelCell}>{nestedField.label}</label>
+                              {renderScalarInput(
+                                (nestedValue as TermPolicyScalarValue) ?? "",
+                                nestedField,
+                                (nextValue) =>
+                                  updatePolicy(policy.id, (entry) => ({
+                                    ...entry,
+                                    values: {
+                                      ...entry.values,
+                                      [field.key]: objects.map((x) =>
+                                        x.id !== item.id
+                                          ? x
+                                          : { ...x, values: { ...x.values, [nestedField.key]: nextValue } },
+                                      ),
+                                    },
+                                  })),
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      style={actionBtn}
+                      onClick={() =>
+                        updatePolicy(policy.id, (entry) => ({
+                          ...entry,
+                          values: {
+                            ...entry.values,
+                            [field.key]: [
+                              ...objects,
                               {
-                                id: makeId("allowed"),
-                                graphPath: createEmptyGraphPath(),
-                                minValues: 1,
-                                filterValue: "",
+                                id: makeId("item"),
+                                values: Object.fromEntries(
+                                  (field.nestedFields ?? []).map((nestedField) => [
+                                    nestedField.key,
+                                    nestedField.type === "graphPath"
+                                      ? createEmptyGraphPath()
+                                      : nestedField.type === "integer"
+                                        ? 1
+                                        : nestedField.type === "boolean"
+                                          ? false
+                                          : "",
+                                  ]),
+                                ),
                               },
                             ],
                           },
-                    ),
-                  )
-                }
-              >
-                Add allowed path
-              </button>
-            </div>
-          ) : (
-            <div>
-              <GraphPathInput
-                label="Cohort path"
-                value={policy.cohortPath}
-                predicateOptions={predicateOptions}
-                onChange={(next) =>
-                  setStatisticPolicies((prev) =>
-                    prev.map((p) =>
-                      p.id === policy.id && p.statisticName === "kaplan-meier"
-                        ? { ...p, cohortPath: next }
-                        : p,
-                    ),
-                  )
-                }
-              />
-              <GraphPathInput
-                label="Event path"
-                value={policy.eventPath}
-                predicateOptions={predicateOptions}
-                onChange={(next) =>
-                  setStatisticPolicies((prev) =>
-                    prev.map((p) =>
-                      p.id === policy.id && p.statisticName === "kaplan-meier"
-                        ? { ...p, eventPath: next }
-                        : p,
-                    ),
-                  )
-                }
-              />
-              <GraphPathInput
-                label="Time path"
-                value={policy.timePath}
-                predicateOptions={predicateOptions}
-                onChange={(next) =>
-                  setStatisticPolicies((prev) =>
-                    prev.map((p) =>
-                      p.id === policy.id && p.statisticName === "kaplan-meier"
-                        ? { ...p, timePath: next }
-                        : p,
-                    ),
-                  )
-                }
-              />
-            </div>
-          )}
-        </View>
-      ))}
+                        }))
+                      }
+                    >
+                      <Plus size={14} color="currentColor" />
+                      Add {field.label}
+                    </button>
+                  </div>
+                );
+              }
 
-      <View style={styles.card}>
-        <Text style={styles.key}>Term policy schemas (ShexJ)</Text>
-        {Object.entries(termPolicySchemas).map(([name, schema]) => (
-          <View key={name} style={styles.schemaBlock}>
-            <Text style={styles.key}>{name} statistic plugin</Text>
-            <Text style={styles.schema} selectable>
-              {JSON.stringify(schema, null, 2)}
-            </Text>
-          </View>
-        ))}
-      </View>
+              if (field.type === "graphPath") {
+                return (
+                  <div key={field.key} style={rowStyle}>
+                    <label style={labelCell}>{field.label}</label>
+                    <GraphPathBuilder
+                      value={getGraphPathFromValue(fieldValue)}
+                      predicateOptions={predicateOptions}
+                      getStartPredicateOptions={getStartPredicateOptions}
+                      getStartValueOptions={getStartValueOptions}
+                      getStepPredicateOptions={getStepPredicateOptions}
+                      getStepWherePredicateOptions={getStepWherePredicateOptions}
+                      getStepWhereValueOptions={getStepWhereValueOptions}
+                      getStepTargetShapeNames={getStepTargetShapeNames}
+                      onChange={(nextGraphPath: GraphPathForm) =>
+                        updatePolicy(policy.id, (entry) => ({
+                          ...entry,
+                          values: { ...entry.values, [field.key]: nextGraphPath },
+                        }))
+                      }
+                    />
+                  </div>
+                );
+              }
 
-      <div style={{ display: "flex", gap: 8 }}>
-        <button type="button" onClick={save} disabled={isSaving}>
+              if (field.repeated) {
+                const values = Array.isArray(fieldValue) ? (fieldValue as TermPolicyScalarValue[]) : [];
+                return (
+                  <div key={field.key} style={{ marginBottom: 10 }}>
+                    <div style={{ fontWeight: 600, marginBottom: 8 }}>{field.label}</div>
+                    {values.map((itemValue, itemIndex) => (
+                      <div key={`${field.key}-${itemIndex}`} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, marginBottom: 8 }}>
+                        {renderScalarInput(itemValue, field, (nextValue) =>
+                          updatePolicy(policy.id, (entry) => ({
+                            ...entry,
+                            values: {
+                              ...entry.values,
+                              [field.key]: values.map((v, idx) => (idx === itemIndex ? nextValue : v)),
+                            },
+                          })),
+                        )}
+                        <button
+                          type="button"
+                          style={actionBtn}
+                          onClick={() =>
+                            updatePolicy(policy.id, (entry) => ({
+                              ...entry,
+                              values: {
+                                ...entry.values,
+                                [field.key]: values.filter((_, idx) => idx !== itemIndex),
+                              },
+                            }))
+                          }
+                        >
+                          <Trash2 size={14} color="currentColor" />
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      style={actionBtn}
+                      onClick={() =>
+                        updatePolicy(policy.id, (entry) => ({
+                          ...entry,
+                          values: {
+                            ...entry.values,
+                            [field.key]: [...values, field.type === "integer" ? 1 : field.type === "boolean" ? false : ""],
+                          },
+                        }))
+                      }
+                    >
+                      <Plus size={14} color="currentColor" />
+                      Add {field.label}
+                    </button>
+                  </div>
+                );
+              }
+
+              return (
+                <div key={field.key} style={rowStyle}>
+                  <label style={labelCell}>{field.label}</label>
+                  {renderScalarInput(
+                    (fieldValue as TermPolicyScalarValue) ?? "",
+                    field,
+                    (nextValue) =>
+                      updatePolicy(policy.id, (entry) => ({
+                        ...entry,
+                        values: { ...entry.values, [field.key]: nextValue },
+                      })),
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+
+      <div
+        style={{
+          position: "sticky",
+          bottom: 0,
+          zIndex: 20,
+          backgroundColor: "rgba(255,255,255,0.96)",
+          borderTop: "1px solid rgba(0,0,0,0.1)",
+          paddingTop: 10,
+          marginTop: 14,
+        }}
+      >
+        <button
+          type="button"
+          onClick={save}
+          disabled={isSaving || !isDirty}
+          style={{
+            ...actionBtn,
+            opacity: isSaving || !isDirty ? 0.5 : 1,
+            cursor: isSaving || !isDirty ? "not-allowed" : "pointer",
+          }}
+        >
+          <Save size={14} color="currentColor" />
           {isSaving ? "Saving..." : "Save Term Policy"}
         </button>
       </div>
@@ -339,15 +441,7 @@ export function TermPolicyEditorForm({
 }
 
 const styles = StyleSheet.create({
-  card: {
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: "rgba(0,0,0,0.04)",
-  },
-  key: { fontWeight: "600", marginBottom: 8 },
-  schemaBlock: { marginBottom: 12 },
-  schema: { fontSize: 12, fontFamily: "monospace" },
+  key: { fontWeight: "600" },
   error: { color: "red", marginBottom: 8 },
   success: { color: "green", marginBottom: 8 },
 });
-

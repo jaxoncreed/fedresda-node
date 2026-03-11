@@ -5,26 +5,28 @@ import type {
   GraphPathForm,
   StatisticPolicy,
   TermPolicyLoadResult,
+  TermPolicyScalarValue,
+  TermPolicySchemas,
+  TermPolicyValue,
 } from "../types";
 import { createEmptyGraphPath, createEmptyNodeFilter, makeId } from "../types";
+import {
+  createDefaultPolicyValues,
+  getGraphPathFromValue,
+  getPolicyFieldDefinitions,
+  type SchemaFieldDefinition,
+} from "./termPolicySchemaForm";
 
 const TP = "https://fedresda.setmeld.org/term-policy#";
 const STATP = "https://fedresda.setmeld.org/statistics#";
 const DATA_SCHEMA_PREDICATE = `${TP}dataSchema`;
 const HAS_STATISTIC_POLICY_PREDICATE = `${TP}hasStatisticPolicy`;
 const STATISTIC_NAME_PREDICATE = `${TP}statisticName`;
-const ALLOWED_PATH_PREDICATE = `${STATP}allowedPath`;
-const GRAPH_PATH_PREDICATE = `${STATP}graphPath`;
-const MIN_VALUES_PREDICATE = `${STATP}minValues`;
-const FILTER_VALUE_PREDICATE = `${STATP}filterValue`;
 const STEP_PREDICATE = `${STATP}step`;
 const WHERE_PREDICATE = `${STATP}where`;
 const PREDICATE_PREDICATE = `${STATP}predicate`;
 const VALUE_PREDICATE = `${STATP}value`;
 const INVERSE_PREDICATE = `${STATP}inverse`;
-const COHORT_PATH_PREDICATE = `${STATP}cohortPath`;
-const EVENT_PATH_PREDICATE = `${STATP}eventPath`;
-const TIME_PATH_PREDICATE = `${STATP}timePath`;
 const HAS_STEP_PREDICATE = `${STATP}step`;
 const START_STEP_PREDICATE = `${STATP}step`;
 
@@ -208,6 +210,7 @@ export function getCandidateTermPolicyUris(targetUri: string): string[] {
 export async function loadTermPolicy(
   authFetch: typeof fetch,
   targetUri: string,
+  termPolicySchemas: TermPolicySchemas,
 ): Promise<TermPolicyLoadResult> {
   const candidates = getCandidateTermPolicyUris(targetUri);
   for (const uri of candidates) {
@@ -218,14 +221,17 @@ export async function loadTermPolicy(
 
     if (uri.endsWith(".ttl") || contentType.includes("text/turtle")) {
       const dataset = await parseRdf(body, { baseIRI: uri, format: "Turtle" });
-      const dataSchemaMatches = allPredicateMatches(dataset, DATA_SCHEMA_PREDICATE);
+      const datasetLike = dataset as unknown as {
+        match: (s: unknown, p: unknown, o: unknown) => unknown;
+      };
+      const dataSchemaMatches = allPredicateMatches(datasetLike, DATA_SCHEMA_PREDICATE);
       const policySubject = dataSchemaMatches[0]?.subject?.value;
       const dataSchemaName = dataSchemaMatches[0]?.object?.value;
       if (!policySubject || typeof dataSchemaName !== "string") {
         return { dataSchemaName: null, statisticPolicies: [] };
       }
       const policyNodes = allObjectNodeValues(
-        dataset,
+        datasetLike,
         policySubject,
         HAS_STATISTIC_POLICY_PREDICATE,
       );
@@ -233,61 +239,24 @@ export async function loadTermPolicy(
       const statisticPolicies: StatisticPolicy[] = [];
       policyNodes.forEach((policyNode) => {
         const statisticName = firstLiteral(
-          dataset,
+          datasetLike,
           policyNode,
           STATISTIC_NAME_PREDICATE,
         );
-        if (statisticName === "mean") {
-          const allowedPathNodes = asArray(
-            dataset.match(
-              namedNode(policyNode),
-              namedNode(ALLOWED_PATH_PREDICATE),
-              null,
-            ),
-          )
-            .map((q) => q.object?.value)
-            .filter((v): v is string => typeof v === "string");
-          const allowedPaths = allowedPathNodes.map((allowedPathNode) => {
-            const minValuesLiteral = firstLiteral(
-              dataset,
-              allowedPathNode,
-              MIN_VALUES_PREDICATE,
-            );
-            return {
-              id: makeId("allowed"),
-              graphPath: parseGraphPath(
-                dataset,
-                allObjectNodeValues(dataset, allowedPathNode, GRAPH_PATH_PREDICATE)[0],
-              ),
-              minValues: Number(minValuesLiteral ?? "1") || 1,
-              filterValue:
-                firstLiteral(dataset, allowedPathNode, FILTER_VALUE_PREDICATE) ?? "",
-            };
-          });
-          statisticPolicies.push({
-            id: makeId("stat"),
-            statisticName: "mean",
-            allowedPaths:
-              allowedPaths.length > 0
-                ? allowedPaths
-                : [
-                    {
-                      id: makeId("allowed"),
-                      graphPath: createEmptyGraphPath(),
-                      minValues: 1,
-                      filterValue: "",
-                    },
-                  ],
-          });
-        } else if (statisticName === "kaplan-meier") {
-          statisticPolicies.push({
-            id: makeId("stat"),
-            statisticName: "kaplan-meier",
-            cohortPath: allLiterals(dataset, policyNode, COHORT_PATH_PREDICATE),
-            eventPath: allLiterals(dataset, policyNode, EVENT_PATH_PREDICATE),
-            timePath: allLiterals(dataset, policyNode, TIME_PATH_PREDICATE),
-          });
-        }
+        if (!statisticName) return;
+        const schema = termPolicySchemas[statisticName];
+        const fieldDefs = schema ? getPolicyFieldDefinitions(schema) : [];
+        const values: Record<string, TermPolicyValue> = schema
+          ? createDefaultPolicyValues(schema)
+          : {};
+        fieldDefs.forEach((field) => {
+          values[field.key] = parseFieldValue(datasetLike, policyNode, field);
+        });
+        statisticPolicies.push({
+          id: makeId("stat"),
+          statisticName,
+          values,
+        });
       });
 
       return { dataSchemaName, statisticPolicies };
@@ -304,6 +273,7 @@ export async function loadTermPolicy(
 export function buildTermPolicyTurtle(
   dataSchemaName: string | null,
   statisticPolicies: StatisticPolicy[],
+  termPolicySchemas: TermPolicySchemas,
 ): string {
   const lines: string[] = [
     `@prefix tp: <${TP}> .`,
@@ -320,41 +290,158 @@ export function buildTermPolicyTurtle(
 
   lines[lines.length - 1] += " ;";
   statisticPolicies.forEach((policy, policyIndex) => {
+    const schema = termPolicySchemas[policy.statisticName];
+    const fieldDefs = schema ? getPolicyFieldDefinitions(schema) : [];
     const isLastPolicy = policyIndex === statisticPolicies.length - 1;
     lines.push("  tp:hasStatisticPolicy [");
     lines.push(`    tp:statisticName "${policy.statisticName}" ;`);
-    if (policy.statisticName === "mean") {
-      policy.allowedPaths.forEach((allowedPath, allowedPathIndex) => {
-        lines.push("    statp:allowedPath [");
-        lines.push(`      statp:graphPath ${graphPathInline(allowedPath.graphPath)} ;`);
-        lines.push(`      statp:minValues ${Math.max(1, Number(allowedPath.minValues) || 1)}`);
-        if (allowedPath.filterValue) {
-          lines[lines.length - 1] += " ;";
-          lines.push(
-            `      statp:filterValue "${escapeTurtleLiteral(allowedPath.filterValue)}"`,
-          );
-        }
-        lines.push(
-          `    ]${allowedPathIndex === policy.allowedPaths.length - 1 ? "" : " ;"}`,
-        );
-      });
-    } else {
-      const cohort = policy.cohortPath
-        .map((p) => `"${escapeTurtleLiteral(p)}"`)
-        .join(", ");
-      const event = policy.eventPath
-        .map((p) => `"${escapeTurtleLiteral(p)}"`)
-        .join(", ");
-      const time = policy.timePath
-        .map((p) => `"${escapeTurtleLiteral(p)}"`)
-        .join(", ");
-      lines.push(`    statp:cohortPath ${cohort || "\"\""} ;`);
-      lines.push(`    statp:eventPath ${event || "\"\""} ;`);
-      lines.push(`    statp:timePath ${time || "\"\""}`);
-    }
+    appendPolicyFields(lines, policy, fieldDefs);
     lines.push(`  ]${isLastPolicy ? " ." : " ;"}`);
   });
   lines.push("");
   return lines.join("\n");
+}
+
+function toLiteral(value: string | number | boolean): string {
+  if (typeof value === "number") return `${Number(value)}`;
+  if (typeof value === "boolean") return value ? "true" : "false";
+  return `"${escapeTurtleLiteral(value)}"`;
+}
+
+function parseFieldValue(
+  dataset: { match: (s: unknown, p: unknown, o: unknown) => unknown },
+  subjectNode: string,
+  field: SchemaFieldDefinition,
+): TermPolicyValue {
+  if (field.type === "graphPath") {
+    const nodes = allObjectNodeValues(dataset, subjectNode, field.predicate);
+    if (field.repeated) {
+      return nodes.map((node) => parseGraphPath(dataset, node));
+    }
+    return parseGraphPath(dataset, nodes[0]);
+  }
+
+  if (field.type === "object") {
+    const nodes = allObjectNodeValues(dataset, subjectNode, field.predicate);
+    return nodes.map((node) => {
+      const values: Record<string, TermPolicyValue> = {};
+      (field.nestedFields ?? []).forEach((nestedField) => {
+        values[nestedField.key] = parseFieldValue(dataset, node, nestedField);
+      });
+      return { id: makeId("item"), values };
+    });
+  }
+
+  const literals = allLiterals(dataset, subjectNode, field.predicate);
+  if (field.repeated) {
+    return literals.map((literal) =>
+      parseScalarLiteral(
+        literal,
+        field.type === "integer" || field.type === "boolean" ? field.type : "string",
+      ),
+    );
+  }
+  return parseScalarLiteral(
+    literals[0] ?? "",
+    field.type === "integer" || field.type === "boolean" ? field.type : "string",
+  );
+}
+
+function parseScalarLiteral(
+  literal: string,
+  fieldType: "string" | "integer" | "boolean",
+): string | number | boolean {
+  if (fieldType === "integer") {
+    const numeric = Number(literal);
+    return Number.isFinite(numeric) ? Math.max(1, Math.trunc(numeric)) : 1;
+  }
+  if (fieldType === "boolean") {
+    return literal === "true";
+  }
+  return literal;
+}
+
+function appendPolicyFields(
+  lines: string[],
+  policy: StatisticPolicy,
+  fields: SchemaFieldDefinition[],
+) {
+  const rendered: string[] = [];
+  fields.forEach((field) => {
+    const value = policy.values[field.key];
+    if (field.type === "graphPath") {
+      if (field.repeated) {
+        const list = Array.isArray(value) ? (value as GraphPathForm[]) : [];
+        list.forEach((graphPath) => {
+          rendered.push(`    <${field.predicate}> ${graphPathInline(graphPath)} ;`);
+        });
+        return;
+      }
+      const graphPath = getGraphPathFromValue(value);
+      rendered.push(`    <${field.predicate}> ${graphPathInline(graphPath)} ;`);
+      return;
+    }
+
+    if (field.type === "object") {
+      const items = Array.isArray(value) ? value : [];
+      (items as { values: Record<string, TermPolicyValue> }[]).forEach((item) => {
+        const nestedLines: string[] = [];
+        (field.nestedFields ?? []).forEach((nestedField) => {
+          appendNestedField(nestedLines, nestedField, item.values[nestedField.key]);
+        });
+        if (nestedLines.length > 0) {
+          const last = nestedLines[nestedLines.length - 1];
+          nestedLines[nestedLines.length - 1] = last.replace(/ ;$/, "");
+        }
+        rendered.push(`    <${field.predicate}> [`);
+        nestedLines.forEach((line) => rendered.push(line));
+        rendered.push("    ] ;");
+      });
+      return;
+    }
+
+    if (field.repeated) {
+      const list = Array.isArray(value) ? (value as TermPolicyScalarValue[]) : [];
+      list.forEach((item) => {
+        rendered.push(`    <${field.predicate}> ${toLiteral(item)} ;`);
+      });
+      return;
+    }
+
+    rendered.push(
+      `    <${field.predicate}> ${toLiteral((value as TermPolicyScalarValue) ?? "")} ;`,
+    );
+  });
+
+  if (rendered.length > 0) {
+    const last = rendered[rendered.length - 1];
+    rendered[rendered.length - 1] = last.replace(/ ;$/, "");
+    lines.push(...rendered);
+  } else {
+    const last = lines[lines.length - 1];
+    lines[lines.length - 1] = last.replace(/ ;$/, "");
+  }
+}
+
+function appendNestedField(
+  lines: string[],
+  field: SchemaFieldDefinition,
+  value: TermPolicyValue | undefined,
+) {
+  if (field.type === "graphPath") {
+    lines.push(`      <${field.predicate}> ${graphPathInline(getGraphPathFromValue(value))} ;`);
+    return;
+  }
+  if (field.type === "object") {
+    return;
+  }
+  if (field.repeated) {
+    const list = Array.isArray(value) ? (value as TermPolicyScalarValue[]) : [];
+    list.forEach((item) => {
+      lines.push(`      <${field.predicate}> ${toLiteral(item)} ;`);
+    });
+    return;
+  }
+  lines.push(`      <${field.predicate}> ${toLiteral((value as TermPolicyScalarValue) ?? "")} ;`);
 }
 
