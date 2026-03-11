@@ -15,11 +15,8 @@ import {
   extractValueOptions,
 } from "../utils/schemaOptions";
 import {
-  createStartPredicateOptionGetter,
-  createStartValueOptionGetter,
-  createStepPredicateOptionGetter,
-  createStepWherePredicateOptionGetter,
-  createStepWhereValueOptionGetter,
+  createEmptyGraphPathOptionGetters,
+  createGraphPathOptionGetters,
 } from "../utils/graphPathOptionResolver";
 import { asJsonDataSchema, findDataSchema } from "../dataSchemas";
 import { getTermPolicySchemasByStatisticPlugin } from "../statisticPlugins";
@@ -88,26 +85,24 @@ export function useTermPolicyEditorData(
     () => extractValueOptions(dataSchema),
     [dataSchema],
   );
-  const getStartPredicateOptions = useMemo(
-    () => createStartPredicateOptionGetter(dataSchema),
-    [dataSchema],
-  );
-  const getStartValueOptions = useMemo(
-    () => createStartValueOptionGetter(dataSchema),
-    [dataSchema],
-  );
-  const getStepPredicateOptions = useMemo(
-    () => createStepPredicateOptionGetter(dataSchema),
-    [dataSchema],
-  );
-  const getStepWherePredicateOptions = useMemo(
-    () => createStepWherePredicateOptionGetter(dataSchema),
-    [dataSchema],
-  );
-  const getStepWhereValueOptions = useMemo(
-    () => createStepWhereValueOptionGetter(dataSchema),
-    [dataSchema],
-  );
+  const emptyGetters = useMemo(() => createEmptyGraphPathOptionGetters(), []);
+  const [graphPathGetters, setGraphPathGetters] = useState(emptyGetters);
+  useEffect(() => {
+    let cancelled = false;
+    setGraphPathGetters(emptyGetters);
+    Promise.resolve(createGraphPathOptionGetters(dataSchema))
+      .then((getters) => {
+        if (cancelled) return;
+        setGraphPathGetters(getters);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setGraphPathGetters(emptyGetters);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dataSchema, emptyGetters]);
   const statisticNames = useMemo(
     () => Object.keys(termPolicySchemas).sort(),
     [termPolicySchemas],
@@ -195,11 +190,12 @@ export function useTermPolicyEditorData(
     setNewStatisticName,
     predicateOptions,
     filterValueOptions,
-    getStartPredicateOptions,
-    getStartValueOptions,
-    getStepPredicateOptions,
-    getStepWherePredicateOptions,
-    getStepWhereValueOptions,
+    getStartPredicateOptions: graphPathGetters.getStartPredicateOptions,
+    getStartValueOptions: graphPathGetters.getStartValueOptions,
+    getStepPredicateOptions: graphPathGetters.getStepPredicateOptions,
+    getStepWherePredicateOptions: graphPathGetters.getStepWherePredicateOptions,
+    getStepWhereValueOptions: graphPathGetters.getStepWhereValueOptions,
+    getStepTargetShapeNames: graphPathGetters.getStepTargetShapeNames,
     addStatisticPolicy,
     save,
   };
