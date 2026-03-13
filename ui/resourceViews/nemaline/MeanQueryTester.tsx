@@ -5,8 +5,38 @@ import { useSolidAuth } from '@ldo/solid-react';
 
 const DEFAULT_MEAN_QUERY = `{
   "graphPath": {
-    "start": {},
-    "steps": []
+    "start": {
+      "predicates": [
+        {
+          "predicate": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+          "some": {
+            "node": {
+              "iri": "https://w3id.org/semanticarts/ns/ontology/gist/Person"
+            }
+          }
+        }
+      ]
+    },
+    "steps": [
+      {
+        "via": "https://w3id.org/semanticarts/ns/ontology/gist/hasMagnitude",
+        "where": {
+          "predicates": [
+            {
+              "predicate": "https://w3id.org/semanticarts/ns/ontology/gist/hasAspect",
+              "some": {
+                "node": {
+                  "iri": "https://w3id.org/semanticarts/ns/ontology/gist/Aspect_Age"
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "via": "https://w3id.org/semanticarts/ns/ontology/gist/numericValue"
+      }
+    ]
   }
 }`;
 
