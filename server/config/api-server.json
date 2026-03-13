@@ -52,6 +52,9 @@
       "rootFilePath": {
         "@id": "urn:solid-server:default:variable:rootFilePath"
       },
+      "sparqlEndpoint": {
+        "@id": "urn:solid-server:default:variable:sparqlEndpoint"
+      },
       "resourceStore": {
         "@id": "urn:solid-server:default:ResourceStore_Backend"
       }

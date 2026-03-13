@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { parseRdf } from "@ldo/ldo";
+import { defaultGraph, namedNode, quad } from "@ldo/rdf-utils";
+import { useChangeDataset, useResource } from "@ldo/solid-react";
 import type {
   DataSchemaJsonView,
   StatisticPolicy,
@@ -39,6 +42,12 @@ export function useTermPolicyEditorData(
   authFetch: typeof fetch,
   targetUri: string | undefined,
 ) {
+  const termPolicyUri = useMemo(
+    () => (targetUri ? getTermPolicyTtlUri(targetUri) : undefined),
+    [targetUri],
+  );
+  const termPolicyResource = useResource(termPolicyUri);
+  const [, setDataset, commitDataset] = useChangeDataset();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -141,7 +150,7 @@ export function useTermPolicyEditorData(
   };
 
   const save = async () => {
-    if (!targetUri) return;
+    if (!termPolicyUri) return;
     setIsSaving(true);
     setSaveMessage(null);
     setError(null);
@@ -151,18 +160,41 @@ export function useTermPolicyEditorData(
         statisticPolicies,
         termPolicySchemas,
       );
-      const saveUri = getTermPolicyTtlUri(targetUri);
-      const res = await authFetch(saveUri, {
-        method: "PUT",
-        headers: {
-          "content-type": "text/turtle",
-        },
-        body: ttl,
-      });
-      if (!res.ok) {
-        throw new Error((await res.text()) || `Save failed: ${res.status}`);
+      const readResult = await termPolicyResource.read();
+      if (readResult.isError) {
+        throw new Error(readResult.message);
       }
-      setSaveMessage(`Saved term policy to ${saveUri}`);
+
+      const parsedDataset = await parseRdf(ttl, {
+        baseIRI: termPolicyUri,
+        format: "Turtle",
+      });
+      const graph = namedNode(termPolicyUri);
+      const parsedQuads = Array.from(parsedDataset).map((q) =>
+        quad(q.subject, q.predicate, q.object, graph),
+      );
+
+      setDataset((dataset: {
+        deleteMatches: (
+          subject?: unknown,
+          predicate?: unknown,
+          object?: unknown,
+          graph?: unknown,
+        ) => unknown;
+        addAll: (quads: unknown[]) => unknown;
+      }) => {
+        // Keep non-resource graphs untouched while replacing this resource graph.
+        dataset.deleteMatches(undefined, undefined, undefined, graph);
+        dataset.deleteMatches(undefined, undefined, undefined, defaultGraph());
+        dataset.addAll(parsedQuads);
+      });
+
+      const commitResult = await commitDataset();
+      if (commitResult.isError) {
+        throw new Error(commitResult.message);
+      }
+
+      setSaveMessage(`Saved term policy to ${termPolicyUri}`);
       setInitialSnapshot(currentSnapshot);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

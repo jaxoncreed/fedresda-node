@@ -17,6 +17,7 @@ import { namedNode } from '@ldo/rdf-utils';
 import { ChevronDown, ChevronRight, ChevronsDown, ChevronsUp } from 'lucide-react-native';
 import { PersonShapeType } from '@fedresda/types';
 import type { Person } from '@fedresda/types';
+import { MeanQueryTester } from './MeanQueryTester';
 
 const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
 const GIST_PERSON = 'https://w3id.org/semanticarts/ns/ontology/gist/Person';
@@ -343,6 +344,7 @@ export function NemalineView() {
 
   const isLoading = resource?.isLoading?.() ?? resource?.status?.type === 'unfetched';
   const [expandedKeys, setExpandedKeys] = useState<Record<string, boolean>>({});
+
   const isRowExpanded = useCallback(
     (key: string) => expandedKeys[key] !== false,
     [expandedKeys],
@@ -398,6 +400,7 @@ export function NemalineView() {
         <Text style={styles.subtitle}>
           {sortedPersons.length} participant{sortedPersons.length === 1 ? '' : 's'}
         </Text>
+        <MeanQueryTester />
         <View style={styles.actionsRow}>
           <Button
             text="Change term policy"

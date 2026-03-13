@@ -31,6 +31,7 @@ function applyTrustProxy(app: Express): void {
 export function createApp(
   base: string,
   rootFilePath: string,
+  sparqlEndpoint: string,
   resourceStore: ResourceStore,
 ): Express {
   const app = express();
@@ -39,6 +40,7 @@ export function createApp(
   setGlobals({
     baseUrl: base,
     rootFilePath,
+    sparqlEndpoint,
     resourceStore,
   });
 

@@ -1,14 +1,29 @@
 import type { StatisticPlugin } from "../StatisticsPlugin";
 import { getPluginTermPolicy } from "./termPolicyAdapter";
 import {
-  statistics_mean_term_policySchema,
-  statistics_mean_querySchema,
+  MeanTermPolicy,
+  GraphPath,
+  mean_termPolicySchemaSchema,
 } from "@fedresda/types";
-import type { MeanTermPolicy } from "@fedresda/types";
+import { graphPathSchema } from "./util/graphPath";
+import type { JSONSchema4 } from "json-schema";
 
-export type MeanQuery = Record<string, never>;
+export type MeanQuery = {
+  graphPath: GraphPath;
+};
 
-export type MeanOutput = Record<string, never>;
+export type MeanOutput = {
+  result: number;
+};
+
+const meanQuerySchema: JSONSchema4 = {
+  type: "object",
+  additionalProperties: false,
+  required: ["graphPath"],
+  properties: {
+    graphPath: graphPathSchema,
+  },
+};
 
 export const meanPlugin: StatisticPlugin<
   MeanQuery,
@@ -17,8 +32,8 @@ export const meanPlugin: StatisticPlugin<
 > = {
   name: "mean",
   route: "mean",
-  termPolicySchema: statistics_mean_term_policySchema,
-  querySchema: statistics_mean_querySchema,
+  termPolicySchema: mean_termPolicySchemaSchema,
+  querySchema: meanQuerySchema,
   evaluateTermPolicy(_query, termPolicyInput): true | Error {
     const adapted = getPluginTermPolicy("mean", termPolicyInput);
     if (!adapted) {
@@ -36,6 +51,8 @@ export const meanPlugin: StatisticPlugin<
   },
   async performQuery(_query): Promise<MeanOutput> {
     // TODO: implement mean calculation
-    return {};
+    return {
+      result: 1,
+    };
   },
 };

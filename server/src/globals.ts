@@ -4,6 +4,7 @@ import { Logger } from "./util/logger";
 export interface IntegrationPodGlobals {
   baseUrl: string;
   rootFilePath: string;
+  sparqlEndpoint: string;
   logger: Logger;
   resourceStore: ResourceStore;
 }
@@ -11,6 +12,7 @@ export interface IntegrationPodGlobals {
 const globals: IntegrationPodGlobals = {
   baseUrl: "",
   rootFilePath: "",
+  sparqlEndpoint: "",
   logger: new Logger(),
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore This will be set by the createApp function

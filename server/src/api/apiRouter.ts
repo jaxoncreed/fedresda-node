@@ -3,10 +3,36 @@ import { createValidateWebId } from "./validateWebId";
 import { HttpError } from "./HttpError";
 import { getGlobals } from "../globals";
 import { findStatisticPlugin } from "./statistics";
+import { validate } from "json-schema";
 
 export function createApiRouter() {
   const apiRouter = express.Router();
-  getGlobals();
+  const globals = getGlobals();
+  const handleStatisticQuery = async (
+    req: Request,
+    res: Response,
+    _next: NextFunction,
+  ) => {
+    const { route } = req.params;
+    const plugin = findStatisticPlugin(route);
+    if (!plugin) {
+      res.status(404).json({ error: `Unknown statistic: ${route}` });
+      return;
+    }
+    const validationResult = validate(req.body, plugin.querySchema);
+    if (!validationResult.valid) {
+      const message = validationResult.errors
+        .map((error) => `${error.property || "<root>"}: ${error.message}`)
+        .join("; ");
+      throw new HttpError(
+        400,
+        `Invalid query for statistic '${route}': ${message}`,
+      );
+    }
+
+    const result = await plugin.performQuery(req.body, globals);
+    res.json(result);
+  };
 
   /**
    * ===========================================================================
@@ -21,22 +47,7 @@ export function createApiRouter() {
    * STATISTICS ROUTES
    * ===========================================================================
    */
-  apiRouter.get(
-    "/stat/:route",
-    (req: Request, res: Response, _next: NextFunction) => {
-      const { route } = req.params;
-      const plugin = findStatisticPlugin(route);
-      if (!plugin) {
-        res.status(404).json({ error: `Unknown statistic: ${route}` });
-        return;
-      }
-      res.json({
-        name: plugin.name,
-        route: plugin.route,
-        termPolicySchema: plugin.termPolicySchema,
-      });
-    },
-  );
+  apiRouter.post("/stat/:route", handleStatisticQuery);
 
   /**
    * ===========================================================================

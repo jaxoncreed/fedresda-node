@@ -1,6 +1,0 @@
-PREFIX statp: <https://fedresda.setmeld.org/statistics#>
-PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-
-statp:KaplanMeierQueryShape {
-  statp:queryVersion xsd:string ?
-}
