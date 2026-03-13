@@ -140,9 +140,10 @@ export function getPolicyFieldDefinitions(schema: Schema): SchemaFieldDefinition
     shape.shapeExpr && typeof shape.shapeExpr === "object"
       ? (shape.shapeExpr as Record<string, unknown>)
       : null;
-  return extractConstraints(shapeExpr?.expression)
+  const fields = extractConstraints(shapeExpr?.expression)
     .map((constraint) => buildFieldDefinition(schema, constraint))
     .filter((field): field is SchemaFieldDefinition => Boolean(field));
+  return fields;
 }
 
 function defaultScalar(fieldType: "string" | "integer" | "boolean"): TermPolicyScalarValue {
