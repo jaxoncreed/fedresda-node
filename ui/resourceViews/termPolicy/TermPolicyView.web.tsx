@@ -23,9 +23,6 @@ export const TermPolicyView: FunctionComponent = () => {
       <Text variant="h1" style={styles.title}>
         Term Policy Editor
       </Text>
-      <Text style={styles.subtitle}>
-        Configure statistic plugin policies from term policy schemas and save as Turtle.
-      </Text>
       <TermPolicyEditorForm
         error={editor.error}
         saveMessage={editor.saveMessage}
