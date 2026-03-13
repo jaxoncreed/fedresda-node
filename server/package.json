@@ -50,6 +50,7 @@
     "componentsjs": "^6.3.0",
     "express": "^5.1.0",
     "express-remove-route": "^1.0.0",
+    "fetch-sparql-endpoint": "^7.1.0",
     "json-schema": "^0.4.0",
     "multer": "^1.4.5-lts.2",
     "yup": "^1.6.1"

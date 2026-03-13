@@ -49,7 +49,7 @@ export const meanPlugin: StatisticPlugin<
     }
     return true;
   },
-  async performQuery(_query): Promise<MeanOutput> {
+  async performQuery(_query, _globals): Promise<MeanOutput> {
     // TODO: implement mean calculation
     return {
       result: 1,
