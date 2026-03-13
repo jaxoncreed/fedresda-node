@@ -215,21 +215,6 @@ export async function loadTermPolicy(
   const candidates = getCandidateTermPolicyUris(targetUri);
   for (const uri of candidates) {
     const res = await authFetch(uri);
-    // #region agent log
-    fetch("http://127.0.0.1:7246/ingest/1a0f9c29-0ae3-48eb-b88e-09395ef55ec4", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "e3da55" },
-      body: JSON.stringify({
-        sessionId: "e3da55",
-        runId: "initial",
-        hypothesisId: "H3",
-        location: "termPolicyRdf.ts:loadTermPolicy",
-        message: "Checked candidate term policy URI",
-        data: { uri, ok: res.ok, status: res.status },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     if (!res.ok) continue;
     const contentType = (res.headers.get("content-type") ?? "").toLowerCase();
     const body = await res.text();
@@ -242,28 +227,6 @@ export async function loadTermPolicy(
       const dataSchemaMatches = allPredicateMatches(datasetLike, DATA_SCHEMA_PREDICATE);
       const policySubject = dataSchemaMatches[0]?.subject?.value;
       const dataSchemaName = dataSchemaMatches[0]?.object?.value;
-      // #region agent log
-      fetch("http://127.0.0.1:7246/ingest/1a0f9c29-0ae3-48eb-b88e-09395ef55ec4", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "e3da55" },
-        body: JSON.stringify({
-          sessionId: "e3da55",
-          runId: "initial",
-          hypothesisId: "H1-H4",
-          location: "termPolicyRdf.ts:loadTermPolicy",
-          message: "Parsed Turtle term policy schema value",
-          data: {
-            uri,
-            contentType,
-            policySubject,
-            dataSchemaName,
-            dataSchemaNameTrimmed:
-              typeof dataSchemaName === "string" ? dataSchemaName.trim() : null,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
       if (!policySubject || typeof dataSchemaName !== "string") {
         return { dataSchemaName: null, statisticPolicies: [] };
       }
@@ -302,21 +265,6 @@ export async function loadTermPolicy(
     const parsedJson = JSON.parse(body) as Record<string, unknown>;
     const dataSchemaName =
       typeof parsedJson.dataSchema === "string" ? parsedJson.dataSchema : null;
-    // #region agent log
-    fetch("http://127.0.0.1:7246/ingest/1a0f9c29-0ae3-48eb-b88e-09395ef55ec4", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "e3da55" },
-      body: JSON.stringify({
-        sessionId: "e3da55",
-        runId: "initial",
-        hypothesisId: "H4",
-        location: "termPolicyRdf.ts:loadTermPolicy",
-        message: "Parsed JSON term policy schema value",
-        data: { uri, contentType, dataSchemaName },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     return { dataSchemaName, statisticPolicies: [] };
   }
   throw new Error("Unable to load any term policy resource variant.");
