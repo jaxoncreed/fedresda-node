@@ -1,5 +1,5 @@
 import type { Schema } from "shexj";
-import { nemaline_myopathy_gistSchema } from "@fedresda/types";
+import { nemaline_dataSchemaSchema } from "@fedresda/types";
 import type {
   DataSchemaJsonTripleConstraint,
   DataSchemaJsonShape,
@@ -7,7 +7,7 @@ import type {
 } from "./types";
 
 const dataSchemaRegistry: Record<string, Schema> = {
-  nemaline: nemaline_myopathy_gistSchema,
+  nemaline: nemaline_dataSchemaSchema,
 };
 
 export function findDataSchema(name: string): Schema | undefined {
