@@ -10,6 +10,7 @@ import { createApp } from "./createApp";
 export interface ApiHandlerArgs {
   baseUrl: string;
   rootFilePath: string;
+  sparqlEndpoint: string;
   resourceStore: ResourceStore;
 }
 
@@ -23,7 +24,12 @@ export class ApiHandler extends HttpHandler {
   constructor(args: ApiHandlerArgs) {
     super();
 
-    this.app = createApp(args.baseUrl, args.rootFilePath, args.resourceStore);
+    this.app = createApp(
+      args.baseUrl,
+      args.rootFilePath,
+      args.sparqlEndpoint,
+      args.resourceStore,
+    );
   }
 
   async handle(input: HttpHandlerInput): Promise<void> {
