@@ -1,5 +1,4 @@
 import type { StatisticPlugin } from "../StatisticsPlugin";
-import { getPluginTermPolicy } from "./termPolicyAdapter";
 import { MeanTermPolicy, mean_termPolicySchemaSchema } from "@fedresda/types";
 import { graphPathSchema } from "./util/graphPath";
 import type { GraphPath } from "./util/graphPath";
@@ -10,6 +9,7 @@ import {
 import type { JSONSchema4 } from "json-schema";
 
 export type MeanQuery = {
+  resourceUri: string;
   graphPath: GraphPath;
 };
 
@@ -20,11 +20,21 @@ export type MeanOutput = {
 const meanQuerySchema: JSONSchema4 = {
   type: "object",
   additionalProperties: false,
-  required: ["graphPath"],
+  required: ["resourceUri", "graphPath"],
   properties: {
+    resourceUri: {
+      type: "string",
+      format: "uri",
+      minLength: 1,
+    },
     graphPath: graphPathSchema,
   },
 };
+
+function toIriToken(value: string): string {
+  if (value.startsWith("<") && value.endsWith(">")) return value;
+  return `<${value}>`;
+}
 
 type SparqlBuilderModule = typeof import("@tpluscode/sparql-builder");
 let sparqlBuilderModulePromise: Promise<SparqlBuilderModule> | undefined;
@@ -45,24 +55,13 @@ export const meanPlugin: StatisticPlugin<
   route: "mean",
   termPolicySchema: mean_termPolicySchemaSchema,
   querySchema: meanQuerySchema,
-  evaluateTermPolicy(_query, termPolicyInput): true | Error {
-    const adapted = getPluginTermPolicy("mean", termPolicyInput);
-    if (!adapted) {
-      return new Error("No mean term policy found in term policy document.");
-    }
-    const allowedPath =
-      (adapted as { allowedPath?: unknown }).allowedPath ??
-      (adapted as { allowedPaths?: unknown }).allowedPaths;
-    if (!Array.isArray(allowedPath) || allowedPath.length === 0) {
-      return new Error(
-        "mean term policy requires at least one allowedPath entry.",
-      );
-    }
+  evaluateTermPolicy(query, termPolicy): true | Error {
+    // TODO
     return true;
   },
   async performQuery(query, globals): Promise<MeanOutput> {
     const { SELECT } = await getSparqlBuilderModule();
-    const { terminalVar, requiresXsdPrefix, applyWhere } =
+    const { terminalVar, requiresXsdPrefix, patterns } =
       buildGraphPathWhereClause(query.graphPath);
     let sparqlSelect = SELECT(
       toTemplateStringsArray(`(AVG(${terminalVar}) AS ?mean)`),
@@ -70,7 +69,14 @@ export const meanPlugin: StatisticPlugin<
     if (requiresXsdPrefix) {
       sparqlSelect = sparqlSelect.prologue`PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n`;
     }
-    sparqlSelect = applyWhere(sparqlSelect);
+    const scopedPatterns = [
+      `GRAPH ${toIriToken(query.resourceUri)} {`,
+      ...patterns.map((pattern) => `  ${pattern}`),
+      "}",
+    ];
+    for (const pattern of scopedPatterns) {
+      sparqlSelect = sparqlSelect.WHERE(toTemplateStringsArray(pattern));
+    }
     sparqlSelect = sparqlSelect.WHERE(
       toTemplateStringsArray(`FILTER(isNumeric(${terminalVar}))`),
     );
