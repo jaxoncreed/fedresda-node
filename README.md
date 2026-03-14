@@ -8,7 +8,7 @@ SetMeld Pod: A Solid Pod with tools for deploying data integrations.
 
 - Node.js ≥ 18
 - Git
-- OpenSSH (dev: `/usr/sbin/sshd` available on macOS & Linux)
+- OpenSSH (dev: `/us/sbin/sshd` available on macOS & Linux)
 
 ## Development
 

@@ -4,6 +4,7 @@ import { Button, Text } from 'linked-data-browser';
 import { useSolidAuth } from '@ldo/solid-react';
 
 const DEFAULT_MEAN_QUERY = `{
+  "resourceUri": "http://localhost:3000/admin/FakeData2.ttl",
   "graphPath": {
     "start": {
       "predicates": [
