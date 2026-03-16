@@ -66,7 +66,7 @@ function toArray<T>(value: T | T[] | undefined): T[] {
   return Array.isArray(value) ? value : [value];
 }
 
-function toIriToken(value: string): string {
+export function toIriToken(value: string): string {
   if (value.startsWith("<") && value.endsWith(">")) return value;
   if (
     value.startsWith("http://") ||
