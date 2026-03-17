@@ -24,6 +24,12 @@ import {
   type SchemaFieldDefinition,
 } from "../utils/termPolicySchemaForm";
 import { GraphPathBuilder } from "./GraphPathBuilder.web";
+import {
+  findGraphPathShortcutByName,
+  instantiateGraphPathShortcut,
+  resolveGraphPathShortcut,
+  type GraphPathShortcut,
+} from "../../../graphPathShortcuts";
 
 type Props = {
   error: string | null;
@@ -36,6 +42,7 @@ type Props = {
   newStatisticName: string;
   setNewStatisticName: (value: string) => void;
   predicateOptions: string[];
+  graphPathShortcuts: GraphPathShortcut[];
   getStartPredicateOptions: StartPredicateOptionGetter;
   getStartValueOptions: StartValueOptionGetter;
   getStepPredicateOptions: StepPredicateOptionGetter;
@@ -82,6 +89,12 @@ const rowStyle = {
   alignItems: "center",
 };
 
+const graphPathSelectStyle = {
+  ...textInputBase,
+  width: "100%",
+  minHeight: 36,
+};
+
 function renderScalarInput(
   value: TermPolicyScalarValue,
   field: SchemaFieldDefinition,
@@ -111,6 +124,89 @@ function renderScalarInput(
   );
 }
 
+type GraphPathFieldEditorProps = {
+  dataSchemaName: string | null;
+  graphPathValue: GraphPathForm;
+  graphPathShortcuts: GraphPathShortcut[];
+  predicateOptions: string[];
+  getStartPredicateOptions: StartPredicateOptionGetter;
+  getStartValueOptions: StartValueOptionGetter;
+  getStepPredicateOptions: StepPredicateOptionGetter;
+  getStepWherePredicateOptions: StepWherePredicateOptionGetter;
+  getStepWhereValueOptions: StepWhereValueOptionGetter;
+  getStepTargetShapeNames: StepTargetShapeNameGetter;
+  onChange: (nextGraphPath: GraphPathForm) => void;
+};
+
+function GraphPathFieldEditor({
+  dataSchemaName,
+  graphPathValue,
+  graphPathShortcuts,
+  predicateOptions,
+  getStartPredicateOptions,
+  getStartValueOptions,
+  getStepPredicateOptions,
+  getStepWherePredicateOptions,
+  getStepWhereValueOptions,
+  getStepTargetShapeNames,
+  onChange,
+}: GraphPathFieldEditorProps) {
+  const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(false);
+  const matchedShortcut = resolveGraphPathShortcut(dataSchemaName, graphPathValue);
+  const selectedShortcutName = matchedShortcut?.name ?? "__custom__";
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+        <select
+          value={selectedShortcutName}
+          onChange={(e) => {
+            const nextShortcut = findGraphPathShortcutByName(dataSchemaName, e.target.value);
+            if (!nextShortcut) {
+              setIsAdvancedOpen(true);
+              return;
+            }
+            onChange(instantiateGraphPathShortcut(nextShortcut));
+          }}
+          style={graphPathSelectStyle}
+        >
+          {graphPathShortcuts.map((shortcut) => (
+            <option key={shortcut.name} value={shortcut.name}>
+              {shortcut.name} - {shortcut.label}
+            </option>
+          ))}
+          <option value="__custom__">Custom (advanced)</option>
+        </select>
+        <button
+          type="button"
+          style={actionBtn}
+          onClick={() => setIsAdvancedOpen((prev) => !prev)}
+        >
+          {isAdvancedOpen ? "Hide advanced" : "Advanced"}
+        </button>
+      </div>
+      {selectedShortcutName === "__custom__" ? (
+        <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 8 }}>
+          This path is custom and does not match a saved shortcut.
+        </div>
+      ) : null}
+      {isAdvancedOpen ? (
+        <GraphPathBuilder
+          value={graphPathValue}
+          predicateOptions={predicateOptions}
+          getStartPredicateOptions={getStartPredicateOptions}
+          getStartValueOptions={getStartValueOptions}
+          getStepPredicateOptions={getStepPredicateOptions}
+          getStepWherePredicateOptions={getStepWherePredicateOptions}
+          getStepWhereValueOptions={getStepWhereValueOptions}
+          getStepTargetShapeNames={getStepTargetShapeNames}
+          onChange={onChange}
+        />
+      ) : null}
+    </div>
+  );
+}
+
 export function TermPolicyEditorForm({
   error,
   saveMessage,
@@ -122,6 +218,7 @@ export function TermPolicyEditorForm({
   newStatisticName,
   setNewStatisticName,
   predicateOptions,
+  graphPathShortcuts,
   getStartPredicateOptions,
   getStartValueOptions,
   getStepPredicateOptions,
@@ -223,8 +320,10 @@ export function TermPolicyEditorForm({
                             return (
                               <div key={nestedField.key} style={rowStyle}>
                                 <label style={labelCell}>{nestedField.label}</label>
-                                <GraphPathBuilder
-                                  value={getGraphPathFromValue(nestedValue)}
+                                <GraphPathFieldEditor
+                                  dataSchemaName={dataSchemaName}
+                                  graphPathValue={getGraphPathFromValue(nestedValue)}
+                                  graphPathShortcuts={graphPathShortcuts}
                                   predicateOptions={predicateOptions}
                                   getStartPredicateOptions={getStartPredicateOptions}
                                   getStartValueOptions={getStartValueOptions}
@@ -318,8 +417,10 @@ export function TermPolicyEditorForm({
                 return (
                   <div key={field.key} style={rowStyle}>
                     <label style={labelCell}>{field.label}</label>
-                    <GraphPathBuilder
-                      value={getGraphPathFromValue(fieldValue)}
+                    <GraphPathFieldEditor
+                      dataSchemaName={dataSchemaName}
+                      graphPathValue={getGraphPathFromValue(fieldValue)}
+                      graphPathShortcuts={graphPathShortcuts}
                       predicateOptions={predicateOptions}
                       getStartPredicateOptions={getStartPredicateOptions}
                       getStartValueOptions={getStartValueOptions}
