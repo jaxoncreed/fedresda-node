@@ -20,6 +20,7 @@ import {
   createGraphPathOptionGetters,
 } from "../utils/graphPathOptionResolver";
 import { asJsonDataSchema, findDataSchema } from "../dataSchemas";
+import { getGraphPathShortcutsForDataSchema } from "../../../graphPathShortcuts";
 import { getTermPolicySchemasByStatisticPlugin } from "../statisticPlugins";
 import { createDefaultStatisticPolicy } from "../utils/termPolicySchemaForm";
 
@@ -100,6 +101,10 @@ export function useTermPolicyEditorData(
   const predicateOptions = useMemo(
     () => extractPredicateOptions(dataSchema),
     [dataSchema],
+  );
+  const graphPathShortcuts = useMemo(
+    () => getGraphPathShortcutsForDataSchema(dataSchemaName),
+    [dataSchemaName],
   );
   const emptyGetters = useMemo(() => createEmptyGraphPathOptionGetters(), []);
   const [graphPathGetters, setGraphPathGetters] = useState(emptyGetters);
@@ -217,6 +222,7 @@ export function useTermPolicyEditorData(
     newStatisticName,
     setNewStatisticName,
     predicateOptions,
+    graphPathShortcuts,
     getStartPredicateOptions: graphPathGetters.getStartPredicateOptions,
     getStartValueOptions: graphPathGetters.getStartValueOptions,
     getStepPredicateOptions: graphPathGetters.getStepPredicateOptions,
