@@ -1,4 +1,4 @@
-import { MeanTermPolicyShapeType } from "@fedresda/types";
+import { KaplanMeierTermPolicyShapeType, MeanTermPolicyShapeType } from "@fedresda/types";
 import { createLdoDataset, parseRdf } from "@ldo/ldo";
 import { namedNode } from "@ldo/rdf-utils";
 import type { Quad } from "@rdfjs/types";
@@ -138,6 +138,9 @@ async function extractPluginTermPolicy(
 
   if (pluginName === "mean") {
     return dataset.usingType(MeanTermPolicyShapeType).fromSubject(policyNode);
+  }
+  if (pluginName === "kaplan-meier") {
+    return dataset.usingType(KaplanMeierTermPolicyShapeType).fromSubject(policyNode);
   }
 
   throw new HttpError(

@@ -11,10 +11,16 @@ type WherePatternAppender<T> = {
 };
 
 type GraphPathSparqlBuildResult = {
+  startVar: string;
   terminalVar: string;
   requiresXsdPrefix: boolean;
   patterns: string[];
   applyWhere<T extends WherePatternAppender<T>>(query: T): T;
+};
+
+export type GraphPathBuildOptions = {
+  startVar?: string;
+  variableNamespace?: string;
 };
 
 const RDF_TYPE = "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>";
@@ -25,10 +31,15 @@ class SparqlPatternBuilder {
   private readonly lines: string[] = [];
   private nextId = 0;
   private usesXsdPrefix = false;
+  private readonly variableNamespace: string;
+
+  public constructor(variableNamespace = "") {
+    this.variableNamespace = variableNamespace;
+  }
 
   public nextVar(prefix: string): string {
     this.nextId += 1;
-    return `?${prefix}${this.nextId}`;
+    return `?${this.variableNamespace}${prefix}${this.nextId}`;
   }
 
   public addLine(line: string): void {
@@ -272,9 +283,12 @@ function addLiteralFilterPattern(
 
 export function buildGraphPathWhereClause(
   graphPath: GraphPath,
+  options?: GraphPathBuildOptions,
 ): GraphPathSparqlBuildResult {
-  const builder = new SparqlPatternBuilder();
-  let currentVar = "?node0";
+  const namespace = options?.variableNamespace ?? "";
+  const startVar = options?.startVar ?? `?${namespace}node0`;
+  const builder = new SparqlPatternBuilder(namespace);
+  let currentVar = startVar;
 
   addNodeFilterPattern(builder, currentVar, graphPath.start);
   for (const step of graphPath.steps) {
@@ -287,6 +301,7 @@ export function buildGraphPathWhereClause(
 
   const patterns = builder.getLines();
   return {
+    startVar,
     terminalVar: currentVar,
     requiresXsdPrefix: builder.getRequiresXsdPrefix(),
     patterns,
