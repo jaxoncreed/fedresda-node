@@ -1,7 +1,7 @@
 import { ShapeType } from "@ldo/ldo";
-import { kaplanMeier_statisticAccessRuleSchemaSchema } from "./kaplanMeier_termPolicySchema.schema";
-import { kaplanMeier_statisticAccessRuleSchemaContext } from "./kaplanMeier_termPolicySchema.context";
-import { KaplanMeierStatisticAccessRule } from "./kaplanMeier_termPolicySchema.typings";
+import { kaplanMeier_statisticAccessRuleSchemaSchema } from "./kaplanMeier_statisticAccessRuleSchema.schema";
+import { kaplanMeier_statisticAccessRuleSchemaContext } from "./kaplanMeier_statisticAccessRuleSchema.context";
+import { KaplanMeierStatisticAccessRule } from "./kaplanMeier_statisticAccessRuleSchema.typings";
 
 /**
  * =============================================================================
@@ -15,6 +15,7 @@ import { KaplanMeierStatisticAccessRule } from "./kaplanMeier_termPolicySchema.t
 export const KaplanMeierStatisticAccessRuleShapeType: ShapeType<KaplanMeierStatisticAccessRule> =
   {
     schema: kaplanMeier_statisticAccessRuleSchemaSchema,
-    shape: "https://fedresda.setmeld.org/statistics#KaplanMeierStatisticAccessRuleShape",
+    shape:
+      "https://fedresda.setmeld.org/statistics#KaplanMeierStatisticAccessRuleShape",
     context: kaplanMeier_statisticAccessRuleSchemaContext,
   };

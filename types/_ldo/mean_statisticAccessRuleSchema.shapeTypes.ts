@@ -1,13 +1,13 @@
 import { ShapeType } from "@ldo/ldo";
-import { mean_statisticAccessRuleSchemaSchema } from "./mean_termPolicySchema.schema";
-import { mean_statisticAccessRuleSchemaContext } from "./mean_termPolicySchema.context";
+import { mean_statisticAccessRuleSchemaSchema } from "./mean_statisticAccessRuleSchema.schema";
+import { mean_statisticAccessRuleSchemaContext } from "./mean_statisticAccessRuleSchema.context";
 import {
   MeanStatisticAccessRule,
   AllowedPath,
   GraphPath,
   GraphNodeFilter,
   GraphTraversalStep,
-} from "./mean_termPolicySchema.typings";
+} from "./mean_statisticAccessRuleSchema.typings";
 
 /**
  * =============================================================================
@@ -18,11 +18,13 @@ import {
 /**
  * MeanStatisticAccessRule ShapeType
  */
-export const MeanStatisticAccessRuleShapeType: ShapeType<MeanStatisticAccessRule> = {
-  schema: mean_statisticAccessRuleSchemaSchema,
-  shape: "https://fedresda.setmeld.org/statistics#MeanStatisticAccessRuleShape",
-  context: mean_statisticAccessRuleSchemaContext,
-};
+export const MeanStatisticAccessRuleShapeType: ShapeType<MeanStatisticAccessRule> =
+  {
+    schema: mean_statisticAccessRuleSchemaSchema,
+    shape:
+      "https://fedresda.setmeld.org/statistics#MeanStatisticAccessRuleShape",
+    context: mean_statisticAccessRuleSchemaContext,
+  };
 
 /**
  * AllowedPath ShapeType

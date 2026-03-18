@@ -29,7 +29,7 @@ const IS_CATEGORIZED_BY = 'https://w3id.org/semanticarts/ns/ontology/gist/isCate
 const KAPLAN_MEIER_ASSESSMENT_TYPE =
   'https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/AssessmentType_KaplanMeier';
 
-function getTermPolicyUris(dataUri: string): {
+function getStatisticAccessRuleUris(dataUri: string): {
   ttl: string;
   jsonld: string;
   legacyJson: string;
@@ -39,9 +39,9 @@ function getTermPolicyUris(dataUri: string): {
   const fileName = lastSlash === -1 ? dataUri : dataUri.slice(lastSlash + 1);
   const baseName = fileName.replace(/\.ttl$/i, '');
   return {
-    ttl: `${dir}${baseName}.term-policy.ttl`,
-    jsonld: `${dir}${baseName}.term-policy.jsonld`,
-    legacyJson: `${dir}${baseName}.term-policy.json`,
+    ttl: `${dir}${baseName}.statistic-access-rule.ttl`,
+    jsonld: `${dir}${baseName}.statistic-access-rule.jsonld`,
+    legacyJson: `${dir}${baseName}.statistic-access-rule.json`,
   };
 }
 
@@ -388,7 +388,7 @@ export function NemalineView() {
     align === 'right' ? 'nemaline-th-right' : align === 'center' ? 'nemaline-th-center' : 'nemaline-th-left';
   const tdClass = (align: Align) =>
     align === 'right' ? 'nemaline-td-right' : align === 'center' ? 'nemaline-td-center' : 'nemaline-td-left';
-  const termPolicyUris = getTermPolicyUris(targetUri);
+  const statisticAccessRuleUris = getStatisticAccessRuleUris(targetUri);
 
   return (
     <View style={styles.container}>
@@ -403,22 +403,22 @@ export function NemalineView() {
         <MeanQueryTester />
         <View style={styles.actionsRow}>
           <Button
-            text="Change term policy"
+            text="Edit Statistic Access Rule"
             variant="secondary"
             onPress={async () => {
-              if (await resourceExists(fetch, termPolicyUris.ttl)) {
-                navigateTo(termPolicyUris.ttl);
+              if (await resourceExists(fetch, statisticAccessRuleUris.ttl)) {
+                navigateTo(statisticAccessRuleUris.ttl);
                 return;
               }
-              if (await resourceExists(fetch, termPolicyUris.jsonld)) {
-                navigateTo(termPolicyUris.jsonld);
+              if (await resourceExists(fetch, statisticAccessRuleUris.jsonld)) {
+                navigateTo(statisticAccessRuleUris.jsonld);
                 return;
               }
-              if (await resourceExists(fetch, termPolicyUris.legacyJson)) {
-                navigateTo(termPolicyUris.legacyJson);
+              if (await resourceExists(fetch, statisticAccessRuleUris.legacyJson)) {
+                navigateTo(statisticAccessRuleUris.legacyJson);
                 return;
               }
-              navigateTo(termPolicyUris.jsonld);
+              navigateTo(statisticAccessRuleUris.jsonld);
             }}
           />
         </View>

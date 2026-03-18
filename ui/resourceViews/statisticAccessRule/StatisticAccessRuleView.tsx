@@ -3,19 +3,21 @@ import { Linking, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useTheme } from "@react-navigation/native";
 import { Button, LoadingBar, Text, useViewContext } from "linked-data-browser";
 import { useSolidAuth } from "@ldo/solid-react";
-import { useTermPolicyEditorData } from "./hooks/useTermPolicyEditorData";
-import { TermPolicyEditorForm } from "./components/TermPolicyEditorForm";
+import { useStatisticAccessRuleEditorData } from "./hooks/useStatisticAccessRuleEditorData";
+import { StatisticAccessRuleEditorForm } from "./components/StatisticAccessRuleEditorForm";
 
-function getDataDocumentUri(termPolicyUri: string | undefined): string | undefined {
-  if (!termPolicyUri) return undefined;
-  return termPolicyUri.replace(".term-policy.", ".");
+function getDataDocumentUri(
+  statisticAccessRuleUri: string | undefined,
+): string | undefined {
+  if (!statisticAccessRuleUri) return undefined;
+  return statisticAccessRuleUri.replace(".statistic-access-rule.", ".");
 }
 
-export const TermPolicyView: FunctionComponent = () => {
+export const StatisticAccessRuleView: FunctionComponent = () => {
   const { targetUri } = useViewContext();
   const { fetch } = useSolidAuth();
   const { colors } = useTheme();
-  const editor = useTermPolicyEditorData(fetch, targetUri);
+  const editor = useStatisticAccessRuleEditorData(fetch, targetUri);
   const styles = React.useMemo(
     () =>
       StyleSheet.create({
@@ -86,7 +88,7 @@ export const TermPolicyView: FunctionComponent = () => {
     );
   }
 
-  const dataDocumentUri = getDataDocumentUri(editor.termPolicyUri);
+  const dataDocumentUri = getDataDocumentUri(editor.statisticAccessRuleUri);
   const dataDocumentName = dataDocumentUri?.split("/").pop() ?? "document.ttl";
   const isSaveDisabled = editor.isSaving || !editor.isDirty;
 
@@ -95,7 +97,7 @@ export const TermPolicyView: FunctionComponent = () => {
       <View style={styles.header}>
         <View style={styles.headerTextWrap}>
           <View style={styles.titleRow}>
-            <Text variant="h2" style={styles.title}>Term Policy for</Text>
+            <Text variant="h2" style={styles.title}>Statistic Access Rule for</Text>
             <Pressable
               style={styles.documentLink}
               onPress={() => {
@@ -112,7 +114,7 @@ export const TermPolicyView: FunctionComponent = () => {
           <Text style={styles.dataType}>Data Type: {editor.dataSchemaName ?? "Unknown"}</Text>
         </View>
         <Button
-          text={editor.isSaving ? "Saving..." : "Save Term Policy"}
+          text={editor.isSaving ? "Saving..." : "Save Statistic Access Rule"}
           variant="default"
           style={[styles.saveButton, isSaveDisabled ? styles.saveButtonDisabled : undefined]}
           onPress={() => {
@@ -124,11 +126,11 @@ export const TermPolicyView: FunctionComponent = () => {
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <TermPolicyEditorForm
+        <StatisticAccessRuleEditorForm
           error={editor.error}
           saveMessage={editor.saveMessage}
           dataSchemaName={editor.dataSchemaName}
-          termPolicySchemas={editor.termPolicySchemas}
+          statisticAccessRuleSchemas={editor.statisticAccessRuleSchemas}
           statisticPolicies={editor.statisticPolicies}
           setStatisticPolicies={editor.setStatisticPolicies}
           statisticNames={editor.statisticNames}

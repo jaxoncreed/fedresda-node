@@ -1,6 +1,6 @@
 import {
-  KaplanMeierTermPolicyShapeType,
-  MeanTermPolicyShapeType,
+  KaplanMeierStatisticAccessRuleShapeType,
+  MeanStatisticAccessRuleShapeType,
 } from "@fedresda/types";
 import { createLdoDataset, parseRdf } from "@ldo/ldo";
 import { namedNode } from "@ldo/rdf-utils";
@@ -12,7 +12,7 @@ import { HttpError } from "./HttpError";
 import { findStatisticPlugin } from "./statistics";
 
 const STATISTIC_NAME_PREDICATE =
-  "https://fedresda.setmeld.org/term-policy#statisticName";
+  "https://fedresda.setmeld.org/statistic-access-rule#statisticName";
 const ALLOWED_PATH_PREDICATE =
   "https://fedresda.setmeld.org/statistics#allowedPath";
 
@@ -44,14 +44,14 @@ function getResourceUriFromQuery(query: unknown): string | undefined {
   return value;
 }
 
-function getTermPolicyUri(resourceUri: string): string {
-  if (resourceUri.endsWith(".term-policy.ttl")) {
+function getStatisticAccessRuleUri(resourceUri: string): string {
+  if (resourceUri.endsWith(".statistic-access-rule.ttl")) {
     return resourceUri;
   }
   if (/\.ttl$/i.test(resourceUri)) {
-    return resourceUri.replace(/\.ttl$/i, ".term-policy.ttl");
+    return resourceUri.replace(/\.ttl$/i, ".statistic-access-rule.ttl");
   }
-  return `${resourceUri}.term-policy.ttl`;
+  return `${resourceUri}.statistic-access-rule.ttl`;
 }
 
 function toResourceStorePath(uri: string): string {
@@ -78,7 +78,7 @@ async function streamToArray(stream: unknown): Promise<unknown[]> {
   return chunks;
 }
 
-async function extractPluginTermPolicy(
+async function extractPluginStatisticAccessRule(
   dataset: DatasetLike,
   pluginName: string,
 ): Promise<unknown> {
@@ -99,7 +99,7 @@ async function extractPluginTermPolicy(
       sessionId: "d30084",
       runId: "policy-debug-2",
       hypothesisId: "H5",
-      location: "handleStatiscQuery.ts:extractPluginTermPolicy",
+      location: "handleStatiscQuery.ts:extractPluginStatisticAccessRule",
       message: "Selected policy node for plugin",
       data: {
         pluginName,
@@ -113,7 +113,7 @@ async function extractPluginTermPolicy(
   if (!policyNode) {
     throw new HttpError(
       403,
-      `No term policy entry found for statistic '${pluginName}'.`,
+      `No statistic access rule entry found for statistic '${pluginName}'.`,
     );
   }
 
@@ -131,7 +131,7 @@ async function extractPluginTermPolicy(
       sessionId: "d30084",
       runId: "policy-debug-2",
       hypothesisId: "H6",
-      location: "handleStatiscQuery.ts:extractPluginTermPolicy",
+      location: "handleStatiscQuery.ts:extractPluginStatisticAccessRule",
       message: "Allowed path triples on selected policy node",
       data: {
         policyNode,
@@ -144,32 +144,36 @@ async function extractPluginTermPolicy(
   // #endregion
 
   if (pluginName === "mean") {
-    return dataset.usingType(MeanTermPolicyShapeType).fromSubject(policyNode);
+    return dataset
+      .usingType(MeanStatisticAccessRuleShapeType)
+      .fromSubject(policyNode);
   }
   if (pluginName === "kaplan-meier") {
     return dataset
-      .usingType(KaplanMeierTermPolicyShapeType)
+      .usingType(KaplanMeierStatisticAccessRuleShapeType)
       .fromSubject(policyNode);
   }
 
   throw new HttpError(
     500,
-    `Term policy parsing is not configured for statistic '${pluginName}'.`,
+    `Statistic access rule parsing is not configured for statistic '${pluginName}'.`,
   );
 }
 
-async function loadTermPolicyFromStore(
+async function loadStatisticAccessRuleFromStore(
   globals: IntegrationPodGlobals,
-  termPolicyUri: string,
+  statisticAccessRuleUri: string,
 ): Promise<DatasetLike> {
-  const path = toResourceStorePath(termPolicyUri);
+  const path = toResourceStorePath(statisticAccessRuleUri);
   const store = globals.resourceStore as unknown as {
     getRepresentation: (identifier: { path: string }) => Promise<unknown>;
   };
   const representation = await store.getRepresentation({ path });
   const data = (representation as { data?: unknown }).data;
   if (!data) {
-    throw new Error("Term policy representation has no readable body.");
+    throw new Error(
+      "Statistic access rule representation has no readable body.",
+    );
   }
   const chunks = await streamToArray(data);
   const firstChunk = chunks[0];
@@ -193,7 +197,7 @@ async function loadTermPolicyFromStore(
     });
     const turtle = Buffer.concat(binaryChunks).toString("utf8");
     return (await parseRdf(turtle, {
-      baseIRI: termPolicyUri,
+      baseIRI: statisticAccessRuleUri,
       format: "Turtle",
     })) as unknown as DatasetLike;
   }
@@ -225,20 +229,23 @@ export function createHandleStatiscQuery(globals: IntegrationPodGlobals) {
     if (!resourceUri) {
       throw new HttpError(
         400,
-        "Missing query.resourceUri for term policy evaluation.",
+        "Missing query.resourceUri for statistic access rule evaluation.",
       );
     }
 
-    const termPolicyUri = getTermPolicyUri(resourceUri);
-    const termPolicyDataset = await loadTermPolicyFromStore(
+    const statisticAccessRuleUri = getStatisticAccessRuleUri(resourceUri);
+    const statisticAccessRuleDataset = await loadStatisticAccessRuleFromStore(
       globals,
-      termPolicyUri,
+      statisticAccessRuleUri,
     );
-    const pluginTermPolicy = await extractPluginTermPolicy(
-      termPolicyDataset,
+    const pluginStatisticAccessRule = await extractPluginStatisticAccessRule(
+      statisticAccessRuleDataset,
       plugin.name,
     );
-    const policyResult = plugin.evaluateTermPolicy(req.body, pluginTermPolicy);
+    const policyResult = plugin.evaluateStatisticAccessRule(
+      req.body,
+      pluginStatisticAccessRule,
+    );
     if (policyResult instanceof Error) {
       throw new HttpError(403, policyResult.message);
     }

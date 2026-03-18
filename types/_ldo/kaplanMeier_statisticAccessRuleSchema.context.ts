@@ -2,8 +2,7 @@ import { LdoJsonldContext } from "@ldo/ldo";
 
 /**
  * =============================================================================
- * kaplanMeier_statisticAccessRuleSchemaContext: JSONLD Context for
- * kaplanMeier_statisticAccessRuleSchema
+ * kaplanMeier_statisticAccessRuleSchemaContext: JSONLD Context for kaplanMeier_statisticAccessRuleSchema
  * =============================================================================
  */
 export const kaplanMeier_statisticAccessRuleSchemaContext: LdoJsonldContext = {
