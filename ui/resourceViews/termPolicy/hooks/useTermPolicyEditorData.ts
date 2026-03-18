@@ -59,7 +59,6 @@ export function useTermPolicyEditorData(
   const [dataSchemaName, setDataSchemaName] = useState<string | null>(null);
   const [dataSchema, setDataSchema] = useState<DataSchemaJsonView | null>(null);
   const [statisticPolicies, setStatisticPolicies] = useState<StatisticPolicy[]>([]);
-  const [newStatisticName, setNewStatisticName] = useState<string>("");
   const [initialSnapshot, setInitialSnapshot] = useState<string | null>(null);
 
   useEffect(() => {
@@ -137,14 +136,8 @@ export function useTermPolicyEditorData(
     [currentSnapshot, initialSnapshot],
   );
 
-  useEffect(() => {
-    if (!newStatisticName && statisticNames.length > 0) {
-      setNewStatisticName(statisticNames[0]);
-    }
-  }, [newStatisticName, statisticNames]);
-
-  const addStatisticPolicy = () => {
-    const selected = newStatisticName || statisticNames[0];
+  const addStatisticPolicy = (selectedName?: string) => {
+    const selected = selectedName || statisticNames[0];
     if (!selected) return;
     const schema = termPolicySchemas[selected];
     if (!schema) return;
@@ -209,6 +202,7 @@ export function useTermPolicyEditorData(
   };
 
   return {
+    termPolicyUri,
     isLoading,
     isSaving,
     error,
@@ -219,8 +213,6 @@ export function useTermPolicyEditorData(
     statisticPolicies,
     setStatisticPolicies,
     statisticNames,
-    newStatisticName,
-    setNewStatisticName,
     predicateOptions,
     graphPathShortcuts,
     getStartPredicateOptions: graphPathGetters.getStartPredicateOptions,
@@ -230,7 +222,7 @@ export function useTermPolicyEditorData(
     getStepWhereValueOptions: graphPathGetters.getStepWhereValueOptions,
     getStepTargetShapeNames: graphPathGetters.getStepTargetShapeNames,
     isDirty,
-    addStatisticPolicy,
+    addStatisticPolicyByName: addStatisticPolicy,
     save,
   };
 }
