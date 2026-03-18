@@ -1,4 +1,4 @@
-import type { StatisticPlugin } from "../StatisticsPlugin";
+import type { StatisticPlugin } from "../StatisticPlugin";
 import {
   MeanStatisticAccessRule,
   mean_statisticAccessRuleSchemaSchema,
@@ -42,6 +42,8 @@ export const meanPlugin: StatisticPlugin<
   querySchema: meanQuerySchema,
   evaluateStatisticAccessRule(_query, _statisticAccessRule): true | Error {
     // TODO
+    console.log(JSON.stringify(_query));
+    console.log(JSON.stringify(_statisticAccessRule));
     return true;
   },
   async performQuery(query, globals): Promise<MeanOutput> {

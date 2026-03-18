@@ -1,4 +1,4 @@
-import type { StatisticPlugin } from "../StatisticsPlugin";
+import type { StatisticPlugin } from "../StatisticPlugin";
 import {
   KaplanMeierStatisticAccessRule,
   kaplanMeier_statisticAccessRuleSchemaSchema,

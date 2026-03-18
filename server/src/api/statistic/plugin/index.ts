@@ -1,4 +1,4 @@
-import type { StatisticPlugin } from "../StatisticsPlugin";
+import type { StatisticPlugin } from "../StatisticPlugin";
 import { kaplanMeierPlugin } from "./kaplanMeierPlugin";
 import { meanPlugin } from "./meanPlugin";
 

@@ -1,6 +1,6 @@
 import type { Schema } from "shexj";
 import type { JSONSchema4 } from "json-schema";
-import { IntegrationPodGlobals } from "../globals";
+import { IntegrationPodGlobals } from "../../globals";
 
 export interface StatisticPlugin<Query, Output, StatisticAccessRule> {
   // The name of the plugin

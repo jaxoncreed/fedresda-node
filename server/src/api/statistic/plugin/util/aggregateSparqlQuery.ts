@@ -1,6 +1,6 @@
 import type { GraphPath } from "./graphPath";
 import { parseNumericBindingValue } from "./sparqlBindingParsers";
-import type { IntegrationPodGlobals } from "../../../globals";
+import type { IntegrationPodGlobals } from "../../../../globals";
 import { executeStatisticSparqlQuery } from "./statisticSparqlQuery";
 
 export interface NumericAggregateSpec {

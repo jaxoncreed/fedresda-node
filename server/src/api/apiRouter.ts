@@ -2,12 +2,12 @@ import express, { NextFunction, Request, Response } from "express";
 import { createValidateWebId } from "./validateWebId";
 import { HttpError } from "./HttpError";
 import { getGlobals } from "../globals";
-import { createHandleStatiscQuery } from "./handleStatiscQuery";
+import { createStatisticQueryHandler } from "./statistic/statisticQueryHandler";
 
 export function createApiRouter() {
   const apiRouter = express.Router();
   const globals = getGlobals();
-  const handleStatiscQuery = createHandleStatiscQuery(globals);
+  const handleStatiscQuery = createStatisticQueryHandler(globals);
 
   /**
    * ===========================================================================
