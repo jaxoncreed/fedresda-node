@@ -1,4 +1,7 @@
-import { KaplanMeierTermPolicyShapeType, MeanTermPolicyShapeType } from "@fedresda/types";
+import {
+  KaplanMeierTermPolicyShapeType,
+  MeanTermPolicyShapeType,
+} from "@fedresda/types";
 import { createLdoDataset, parseRdf } from "@ldo/ldo";
 import { namedNode } from "@ldo/rdf-utils";
 import type { Quad } from "@rdfjs/types";
@@ -98,7 +101,11 @@ async function extractPluginTermPolicy(
       hypothesisId: "H5",
       location: "handleStatiscQuery.ts:extractPluginTermPolicy",
       message: "Selected policy node for plugin",
-      data: { pluginName, policyNode, statisticNameMatchCount: byStatisticName.length },
+      data: {
+        pluginName,
+        policyNode,
+        statisticNameMatchCount: byStatisticName.length,
+      },
       timestamp: Date.now(),
     }),
   }).catch(() => {});
@@ -140,7 +147,9 @@ async function extractPluginTermPolicy(
     return dataset.usingType(MeanTermPolicyShapeType).fromSubject(policyNode);
   }
   if (pluginName === "kaplan-meier") {
-    return dataset.usingType(KaplanMeierTermPolicyShapeType).fromSubject(policyNode);
+    return dataset
+      .usingType(KaplanMeierTermPolicyShapeType)
+      .fromSubject(policyNode);
   }
 
   throw new HttpError(
@@ -164,7 +173,9 @@ async function loadTermPolicyFromStore(
   }
   const chunks = await streamToArray(data);
   const firstChunk = chunks[0];
-  const firstChunkType = Buffer.isBuffer(firstChunk) ? "buffer" : typeof firstChunk;
+  const firstChunkType = Buffer.isBuffer(firstChunk)
+    ? "buffer"
+    : typeof firstChunk;
 
   if (
     firstChunkType === "string" ||
@@ -219,7 +230,10 @@ export function createHandleStatiscQuery(globals: IntegrationPodGlobals) {
     }
 
     const termPolicyUri = getTermPolicyUri(resourceUri);
-    const termPolicyDataset = await loadTermPolicyFromStore(globals, termPolicyUri);
+    const termPolicyDataset = await loadTermPolicyFromStore(
+      globals,
+      termPolicyUri,
+    );
     const pluginTermPolicy = await extractPluginTermPolicy(
       termPolicyDataset,
       plugin.name,
