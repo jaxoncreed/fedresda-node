@@ -1,12 +1,12 @@
-export * from "./_ldo/kaplanMeier_termPolicySchema.context";
-export * from "./_ldo/kaplanMeier_termPolicySchema.schema";
-export * from "./_ldo/kaplanMeier_termPolicySchema.shapeTypes";
-export * from "./_ldo/kaplanMeier_termPolicySchema.typings";
+export * from "./_ldo/kaplanMeier_statisticAccessRuleSchema.context";
+export * from "./_ldo/kaplanMeier_statisticAccessRuleSchema.schema";
+export * from "./_ldo/kaplanMeier_statisticAccessRuleSchema.shapeTypes";
+export * from "./_ldo/kaplanMeier_statisticAccessRuleSchema.typings";
 
-export * from "./_ldo/mean_termPolicySchema.context";
-export * from "./_ldo/mean_termPolicySchema.schema";
-export * from "./_ldo/mean_termPolicySchema.shapeTypes";
-export * from "./_ldo/mean_termPolicySchema.typings";
+export * from "./_ldo/mean_statisticAccessRuleSchema.context";
+export * from "./_ldo/mean_statisticAccessRuleSchema.schema";
+export * from "./_ldo/mean_statisticAccessRuleSchema.shapeTypes";
+export * from "./_ldo/mean_statisticAccessRuleSchema.typings";
 
 export * from "./_ldo/nemaline_dataSchema.context";
 export * from "./_ldo/nemaline_dataSchema.schema";

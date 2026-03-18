@@ -2,8 +2,7 @@ import { Schema } from "shexj";
 
 /**
  * =============================================================================
- * mean_statisticAccessRuleSchemaSchema: ShexJ Schema for
- * mean_statisticAccessRuleSchema
+ * mean_statisticAccessRuleSchemaSchema: ShexJ Schema for mean_statisticAccessRuleSchema
  * =============================================================================
  */
 export const mean_statisticAccessRuleSchemaSchema: Schema = {

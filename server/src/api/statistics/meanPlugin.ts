@@ -1,5 +1,8 @@
 import type { StatisticPlugin } from "../StatisticsPlugin";
-import { MeanTermPolicy, mean_termPolicySchemaSchema } from "@fedresda/types";
+import {
+  MeanStatisticAccessRule,
+  mean_statisticAccessRuleSchemaSchema,
+} from "@fedresda/types";
 import { graphPathSchema } from "./util/graphPath";
 import type { GraphPath } from "./util/graphPath";
 import { executeNumericAggregateQuery } from "./util/aggregateSparqlQuery";
@@ -31,13 +34,13 @@ const meanQuerySchema: JSONSchema4 = {
 export const meanPlugin: StatisticPlugin<
   MeanQuery,
   MeanOutput,
-  MeanTermPolicy
+  MeanStatisticAccessRule
 > = {
   name: "mean",
   route: "mean",
-  termPolicySchema: mean_termPolicySchemaSchema,
+  statisticAccessRuleSchema: mean_statisticAccessRuleSchemaSchema,
   querySchema: meanQuerySchema,
-  evaluateTermPolicy(_query, _termPolicy): true | Error {
+  evaluateStatisticAccessRule(_query, _statisticAccessRule): true | Error {
     // TODO
     return true;
   },

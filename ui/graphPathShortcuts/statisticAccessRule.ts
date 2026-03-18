@@ -1,7 +1,7 @@
 import {
   makeId,
   type GraphPathForm,
-} from "../resourceViews/termPolicy/types";
+} from "../resourceViews/statisticAccessRule/types";
 import { getGraphPathShortcutsForDataSchema } from "./registry";
 import type { GraphPathShortcut, GraphPathShortcutTemplate } from "./types";
 

@@ -5,13 +5,13 @@ import { useChangeDataset, useResource } from "@ldo/solid-react";
 import type {
   DataSchemaJsonView,
   StatisticPolicy,
-  TermPolicySchemas,
+  StatisticAccessRuleSchemas,
 } from "../types";
 import {
-  buildTermPolicyTurtle,
-  getTermPolicyTtlUri,
-  loadTermPolicy,
-} from "../utils/termPolicyRdf";
+  buildStatisticAccessRuleTurtle,
+  getStatisticAccessRuleTtlUri,
+  loadStatisticAccessRule,
+} from "../utils/statisticAccessRuleRdf";
 import {
   extractPredicateOptions,
 } from "../utils/schemaOptions";
@@ -21,8 +21,8 @@ import {
 } from "../utils/graphPathOptionResolver";
 import { asJsonDataSchema, findDataSchema } from "../dataSchemas";
 import { getGraphPathShortcutsForDataSchema } from "../../../graphPathShortcuts";
-import { getTermPolicySchemasByStatisticPlugin } from "../statisticPlugins";
-import { createDefaultStatisticPolicy } from "../utils/termPolicySchemaForm";
+import { getStatisticAccessRuleSchemasByStatisticPlugin } from "../statisticPlugins";
+import { createDefaultStatisticPolicy } from "../utils/statisticAccessRuleSchemaForm";
 
 function createSnapshot(
   dataSchemaName: string | null,
@@ -39,21 +39,22 @@ function getDataSchema(schemaName: string): DataSchemaJsonView {
   return asJsonDataSchema(schemaName, schema);
 }
 
-export function useTermPolicyEditorData(
+export function useStatisticAccessRuleEditorData(
   authFetch: typeof fetch,
   targetUri: string | undefined,
 ) {
-  const termPolicyUri = useMemo(
-    () => (targetUri ? getTermPolicyTtlUri(targetUri) : undefined),
+  const statisticAccessRuleUri = useMemo(
+    () => (targetUri ? getStatisticAccessRuleTtlUri(targetUri) : undefined),
     [targetUri],
   );
-  const termPolicyResource = useResource(termPolicyUri);
+  const statisticAccessRuleResource = useResource(statisticAccessRuleUri);
   const [, setDataset, commitDataset] = useChangeDataset();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [termPolicySchemas, setTermPolicySchemas] = useState<TermPolicySchemas>(
+  const [statisticAccessRuleSchemas, setStatisticAccessRuleSchemas] =
+    useState<StatisticAccessRuleSchemas>(
     {},
   );
   const [dataSchemaName, setDataSchemaName] = useState<string | null>(null);
@@ -68,21 +69,24 @@ export function useTermPolicyEditorData(
     setError(null);
     setSaveMessage(null);
     setInitialSnapshot(null);
-    const schemas = getTermPolicySchemasByStatisticPlugin();
-    setTermPolicySchemas(schemas);
+    const schemas = getStatisticAccessRuleSchemasByStatisticPlugin();
+    setStatisticAccessRuleSchemas(schemas);
 
-    Promise.resolve(loadTermPolicy(authFetch, targetUri, schemas))
-      .then((termPolicy) => {
+    Promise.resolve(loadStatisticAccessRule(authFetch, targetUri, schemas))
+      .then((statisticAccessRule) => {
         let loadedDataSchema: DataSchemaJsonView | null = null;
-        if (termPolicy.dataSchemaName) {
-          loadedDataSchema = getDataSchema(termPolicy.dataSchemaName);
+        if (statisticAccessRule.dataSchemaName) {
+          loadedDataSchema = getDataSchema(statisticAccessRule.dataSchemaName);
         }
         if (cancelled) return;
-        setDataSchemaName(termPolicy.dataSchemaName);
+        setDataSchemaName(statisticAccessRule.dataSchemaName);
         setDataSchema(loadedDataSchema);
-        setStatisticPolicies(termPolicy.statisticPolicies);
+        setStatisticPolicies(statisticAccessRule.statisticPolicies);
         setInitialSnapshot(
-          createSnapshot(termPolicy.dataSchemaName, termPolicy.statisticPolicies),
+          createSnapshot(
+            statisticAccessRule.dataSchemaName,
+            statisticAccessRule.statisticPolicies,
+          ),
         );
         setIsLoading(false);
       })
@@ -124,8 +128,8 @@ export function useTermPolicyEditorData(
     };
   }, [dataSchema, emptyGetters]);
   const statisticNames = useMemo(
-    () => Object.keys(termPolicySchemas).sort(),
-    [termPolicySchemas],
+    () => Object.keys(statisticAccessRuleSchemas).sort(),
+    [statisticAccessRuleSchemas],
   );
   const currentSnapshot = useMemo(
     () => createSnapshot(dataSchemaName, statisticPolicies),
@@ -139,7 +143,7 @@ export function useTermPolicyEditorData(
   const addStatisticPolicy = (selectedName?: string) => {
     const selected = selectedName || statisticNames[0];
     if (!selected) return;
-    const schema = termPolicySchemas[selected];
+    const schema = statisticAccessRuleSchemas[selected];
     if (!schema) return;
     setStatisticPolicies((prev) => [
       ...prev,
@@ -148,26 +152,26 @@ export function useTermPolicyEditorData(
   };
 
   const save = async () => {
-    if (!termPolicyUri) return;
+    if (!statisticAccessRuleUri) return;
     setIsSaving(true);
     setSaveMessage(null);
     setError(null);
     try {
-      const ttl = buildTermPolicyTurtle(
+      const ttl = buildStatisticAccessRuleTurtle(
         dataSchemaName,
         statisticPolicies,
-        termPolicySchemas,
+        statisticAccessRuleSchemas,
       );
-      const readResult = await termPolicyResource.read();
+      const readResult = await statisticAccessRuleResource.read();
       if (readResult.isError) {
         throw new Error(readResult.message);
       }
 
       const parsedDataset = await parseRdf(ttl, {
-        baseIRI: termPolicyUri,
+        baseIRI: statisticAccessRuleUri,
         format: "Turtle",
       });
-      const graph = namedNode(termPolicyUri);
+      const graph = namedNode(statisticAccessRuleUri);
       const parsedQuads = Array.from(parsedDataset).map((q) =>
         quad(q.subject, q.predicate, q.object, graph),
       );
@@ -192,7 +196,9 @@ export function useTermPolicyEditorData(
         throw new Error(commitResult.message);
       }
 
-      setSaveMessage(`Saved term policy to ${termPolicyUri}`);
+      setSaveMessage(
+        `Saved statistic access rule to ${statisticAccessRuleUri}`,
+      );
       setInitialSnapshot(currentSnapshot);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -202,12 +208,12 @@ export function useTermPolicyEditorData(
   };
 
   return {
-    termPolicyUri,
+    statisticAccessRuleUri,
     isLoading,
     isSaving,
     error,
     saveMessage,
-    termPolicySchemas,
+    statisticAccessRuleSchemas,
     dataSchemaName,
     dataSchema,
     statisticPolicies,

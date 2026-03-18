@@ -18,4 +18,4 @@ export {
 export {
   instantiateGraphPathShortcut,
   resolveGraphPathShortcut,
-} from "./termPolicy";
+} from "./statisticAccessRule";

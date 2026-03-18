@@ -1,7 +1,7 @@
 import type { StatisticPlugin } from "../StatisticsPlugin";
 import {
-  KaplanMeierTermPolicy,
-  kaplanMeier_termPolicySchemaSchema,
+  KaplanMeierStatisticAccessRule,
+  kaplanMeier_statisticAccessRuleSchemaSchema,
 } from "@fedresda/types";
 import { graphPathSchema } from "./util/graphPath";
 import type { GraphPath } from "./util/graphPath";
@@ -109,13 +109,13 @@ function computeKaplanMeierCurve(
 export const kaplanMeierPlugin: StatisticPlugin<
   KaplanMeierQuery,
   KaplanMeierOutput,
-  KaplanMeierTermPolicy
+  KaplanMeierStatisticAccessRule
 > = {
   name: "kaplan-meier",
   route: "kaplan-meier",
-  termPolicySchema: kaplanMeier_termPolicySchemaSchema,
+  statisticAccessRuleSchema: kaplanMeier_statisticAccessRuleSchemaSchema,
   querySchema: kaplanMeierQuerySchema,
-  evaluateTermPolicy(_query, _termPolicy): true | Error {
+  evaluateStatisticAccessRule(_query, _statisticAccessRule): true | Error {
     // TODO
     return true;
   },

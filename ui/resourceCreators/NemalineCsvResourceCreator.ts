@@ -267,7 +267,7 @@ export const NemalineCsvResourceCreator: ResourceCreatorConfig = {
 
     const baseName = basename(file.name).replace(/\.csv$/i, '');
     const slug = `${baseName}.ttl` as SolidLeafSlug;
-    const termPolicySlug = `${baseName}.term-policy.ttl` as SolidLeafSlug;
+    const statisticAccessRuleSlug = `${baseName}.statistic-access-rule.ttl` as SolidLeafSlug;
     const baseUri = `${container.uri}${slug}`;
 
     if (dataRows.length === 0) {
@@ -302,22 +302,22 @@ export const NemalineCsvResourceCreator: ResourceCreatorConfig = {
     if (commitResult.isError) {
       createUtils.toast(commitResult.message, { title: 'Error' });
     } else {
-      createUtils.loadingMessage(`Initializing ${termPolicySlug}…`);
-      const termPolicyResource = container.child(termPolicySlug);
-      const initialTermPolicyContent = [
-        '@prefix tp: <https://fedresda.setmeld.org/term-policy#> .',
+      createUtils.loadingMessage(`Initializing ${statisticAccessRuleSlug}…`);
+      const statisticAccessRuleResource = container.child(statisticAccessRuleSlug);
+      const initialStatisticAccessRuleContent = [
+        '@prefix sar: <https://fedresda.setmeld.org/statistic-access-rule#> .',
         '',
-        '<#policy> a tp:TermPolicy ;',
-        '  tp:dataSchema "nemaline" .',
+        '<#policy> a sar:StatisticAccessRule ;',
+        '  sar:dataSchema "nemaline" .',
         '',
       ].join('\n');
-      const uploadResult = await termPolicyResource.uploadAndOverwrite(
-        new Blob([initialTermPolicyContent], { type: 'text/turtle' }),
+      const uploadResult = await statisticAccessRuleResource.uploadAndOverwrite(
+        new Blob([initialStatisticAccessRuleContent], { type: 'text/turtle' }),
         'text/turtle',
       );
       if (uploadResult.isError) {
         createUtils.toast(
-          `${slug} created (${dataRows.length} persons), but failed to initialize ${termPolicySlug}: ${
+          `${slug} created (${dataRows.length} persons), but failed to initialize ${statisticAccessRuleSlug}: ${
             uploadResult.message
           }`,
           { title: 'Error' },
@@ -326,7 +326,7 @@ export const NemalineCsvResourceCreator: ResourceCreatorConfig = {
       }
 
       createUtils.toast(
-        `${slug} created (${dataRows.length} persons) with ${termPolicySlug}.`,
+        `${slug} created (${dataRows.length} persons) with ${statisticAccessRuleSlug}.`,
       );
     }
   },
