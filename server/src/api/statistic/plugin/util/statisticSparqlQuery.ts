@@ -1,4 +1,4 @@
-import type { IntegrationPodGlobals } from "../../../globals";
+import type { IntegrationPodGlobals } from "../../../../globals";
 import type { GraphPath } from "./graphPath";
 import {
   buildGraphPathWhereClause,

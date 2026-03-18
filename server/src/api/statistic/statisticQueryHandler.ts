@@ -7,9 +7,9 @@ import { namedNode } from "@ldo/rdf-utils";
 import type { Quad } from "@rdfjs/types";
 import type { NextFunction, Request, Response } from "express";
 import { validate } from "json-schema";
-import type { IntegrationPodGlobals } from "../globals";
-import { HttpError } from "./HttpError";
-import { findStatisticPlugin } from "./statistics";
+import type { IntegrationPodGlobals } from "../../globals";
+import { HttpError } from "../HttpError";
+import { findStatisticPlugin } from "./plugin";
 
 const STATISTIC_NAME_PREDICATE =
   "https://fedresda.setmeld.org/statistic-access-rule#statisticName";
@@ -31,17 +31,6 @@ function asQuads(matchResult: unknown): QuadLike[] {
     return [];
   }
   return maybeToArray.toArray() as QuadLike[];
-}
-
-function getResourceUriFromQuery(query: unknown): string | undefined {
-  if (!query || typeof query !== "object") {
-    return undefined;
-  }
-  const value = (query as { resourceUri?: unknown }).resourceUri;
-  if (typeof value !== "string" || value.length === 0) {
-    return undefined;
-  }
-  return value;
 }
 
 function getStatisticAccessRuleUri(resourceUri: string): string {
@@ -205,7 +194,10 @@ async function loadStatisticAccessRuleFromStore(
   return createLdoDataset(chunks as Quad[]) as unknown as DatasetLike;
 }
 
-export function createHandleStatiscQuery(globals: IntegrationPodGlobals) {
+/**
+ * createStatisticQueryHandler
+ */
+export function createStatisticQueryHandler(globals: IntegrationPodGlobals) {
   return async (req: Request, res: Response, _next: NextFunction) => {
     const { route } = req.params;
     const plugin = findStatisticPlugin(route);
@@ -252,4 +244,17 @@ export function createHandleStatiscQuery(globals: IntegrationPodGlobals) {
     const result = await plugin.performQuery(req.body, globals);
     res.json(result);
   };
+}
+
+// HELPERS =====================================================================
+
+function getResourceUriFromQuery(query: unknown): string | undefined {
+  if (!query || typeof query !== "object") {
+    return undefined;
+  }
+  const value = (query as { resourceUri?: unknown }).resourceUri;
+  if (typeof value !== "string" || value.length === 0) {
+    return undefined;
+  }
+  return value;
 }
