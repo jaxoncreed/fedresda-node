@@ -1,7 +1,15 @@
 import React from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Switch, TextInput, View } from "react-native";
 import { useTheme } from "@react-navigation/native";
-import { Button, Text } from "linked-data-browser";
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Text,
+} from "linked-data-browser";
+import { Trash2 } from "lucide-react-native";
 import type {
   GraphPathForm,
   StatisticPolicy,
@@ -65,15 +73,26 @@ type GraphPathFieldEditorProps = {
 
 function createStyles(colors: ReturnType<typeof useTheme>["colors"]) {
   return StyleSheet.create({
-    error: { color: colors.notification, marginBottom: 8 },
-    success: { color: colors.primary, marginBottom: 8 },
-    countText: { fontSize: 12, opacity: 0.7, marginBottom: 8, color: colors.text },
+    root: {
+      gap: 12,
+    },
+    banner: {
+      borderWidth: 1,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      backgroundColor: colors.card,
+    },
+    error: { color: colors.notification },
+    success: { color: colors.primary },
+    policyList: {
+      gap: 12,
+    },
     policyCard: {
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 10,
-      padding: 12,
-      marginBottom: 10,
+      borderRadius: 12,
+      padding: 14,
       backgroundColor: colors.card,
     },
     policyHeader: {
@@ -82,30 +101,24 @@ function createStyles(colors: ReturnType<typeof useTheme>["colors"]) {
       alignItems: "center",
       gap: 8,
     },
-    policyHeaderTextWrap: {
-      flexShrink: 1,
-      gap: 2,
-    },
-    policyTitle: { fontWeight: "600" },
-    policyMeta: { fontSize: 12, opacity: 0.7 },
+    policyTitle: { fontWeight: "700", fontSize: 16 },
     policyActions: { alignItems: "flex-end", gap: 4 },
     policyBody: {
       borderTopWidth: 1,
       borderTopColor: colors.border,
-      marginTop: 10,
-      paddingTop: 10,
+      marginTop: 12,
+      paddingTop: 12,
     },
-    expandHint: { fontSize: 12, opacity: 0.65 },
-    block: { marginBottom: 12 },
-    sectionLabel: { fontWeight: "600", marginBottom: 8 },
-    fieldWrapper: { marginBottom: 10 },
-    fieldLabel: { marginBottom: 6, fontWeight: "600", fontSize: 13 },
+    block: { marginBottom: 14 },
+    sectionLabel: { fontWeight: "700", marginBottom: 8, fontSize: 14 },
+    fieldWrapper: { marginBottom: 12 },
+    fieldLabel: { marginBottom: 6, fontWeight: "600", fontSize: 13, opacity: 0.92 },
     nestedCard: {
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 8,
-      padding: 10,
-      marginBottom: 8,
+      borderRadius: 10,
+      padding: 12,
+      marginBottom: 10,
       backgroundColor: colors.background,
     },
     nestedHeader: {
@@ -113,11 +126,11 @@ function createStyles(colors: ReturnType<typeof useTheme>["colors"]) {
       justifyContent: "space-between",
       alignItems: "center",
       gap: 8,
-      marginBottom: 8,
+      marginBottom: 10,
     },
-    nestedTitle: { fontWeight: "600" },
+    nestedTitle: { fontWeight: "600", fontSize: 13 },
     input: {
-      minHeight: 36,
+      minHeight: 38,
       borderWidth: 1,
       borderColor: colors.border,
       borderRadius: 8,
@@ -125,6 +138,7 @@ function createStyles(colors: ReturnType<typeof useTheme>["colors"]) {
       paddingVertical: 8,
       backgroundColor: colors.background,
       color: colors.text,
+      fontSize: 14,
     },
     switchRow: { alignSelf: "flex-start" },
     repeatedItem: {
@@ -138,40 +152,63 @@ function createStyles(colors: ReturnType<typeof useTheme>["colors"]) {
     },
     addPolicyRow: {
       marginTop: 6,
-      marginBottom: 12,
-      alignSelf: "flex-start",
-    },
-    modalBackdrop: {
-      flex: 1,
-      justifyContent: "center",
       alignItems: "center",
-      padding: 20,
-      backgroundColor: colors.background,
-    },
-    menuCard: {
       width: "100%",
-      maxWidth: 420,
-      maxHeight: 360,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 10,
-      backgroundColor: colors.card,
-      padding: 8,
     },
-    menuItem: {
-      marginBottom: 6,
+    addPolicyButton: {
+      minWidth: 230,
+      alignSelf: "center",
+    },
+    addItemButton: {
+      alignSelf: "center",
     },
     inlineRow: {
       flexDirection: "row",
       flexWrap: "wrap",
       alignItems: "center",
-      gap: 8,
-      marginBottom: 8,
+      gap: 10,
+      marginBottom: 10,
     },
-    selectedPathText: {
-      opacity: 0.78,
+    dropdownTriggerButton: {
+      minWidth: 280,
+      maxWidth: 420,
+    },
+    dropdownContent: {
+      maxHeight: 320,
+      minWidth: 280,
+      paddingVertical: 6,
+      paddingHorizontal: 6,
+    },
+    iconButton: {
+      width: 32,
+      height: 32,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 8,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.background,
     },
   });
+}
+
+type RemoveIconButtonProps = {
+  onPress: () => void;
+  styles: ReturnType<typeof createStyles>;
+  color: string;
+};
+
+function RemoveIconButton({ onPress, styles, color }: RemoveIconButtonProps) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={styles.iconButton}
+      accessibilityRole="button"
+      accessibilityLabel="Remove"
+    >
+      <Trash2 size={16} color={color} />
+    </Pressable>
+  );
 }
 
 function renderScalarInput(
@@ -226,44 +263,36 @@ function GraphPathFieldEditor({
 }: GraphPathFieldEditorProps) {
   const { colors } = useTheme();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
-  const [isShortcutMenuOpen, setIsShortcutMenuOpen] = React.useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(false);
   const matchedShortcut = resolveGraphPathShortcut(dataSchemaName, graphPathValue);
+  const choosePathLabel = matchedShortcut
+    ? `${matchedShortcut.name} - ${matchedShortcut.label}`
+    : "Choose path";
 
   return (
     <View style={styles.fieldWrapper}>
       <View style={styles.inlineRow}>
-        <Text style={styles.selectedPathText}>
-          {matchedShortcut ? `${matchedShortcut.name} - ${matchedShortcut.label}` : "Custom"}
-        </Text>
-        <Button text="Choose path" variant="secondary" onPress={() => setIsShortcutMenuOpen(true)} />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button text={choosePathLabel} variant="secondary" style={styles.dropdownTriggerButton} />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent style={styles.dropdownContent}>
+            {graphPathShortcuts.map((shortcut) => (
+              <DropdownMenuItem
+                key={shortcut.name}
+                onPress={() => onChange(instantiateGraphPathShortcut(shortcut))}
+              >
+                <Text>{`${shortcut.name} - ${shortcut.label}`}</Text>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Button
           text={isAdvancedOpen ? "Hide advanced" : "Advanced"}
           variant="secondary"
           onPress={() => setIsAdvancedOpen((prev) => !prev)}
         />
       </View>
-
-      <Modal visible={isShortcutMenuOpen} transparent animationType="fade">
-        <Pressable style={styles.modalBackdrop} onPress={() => setIsShortcutMenuOpen(false)}>
-          <Pressable style={styles.menuCard}>
-            <ScrollView>
-              {graphPathShortcuts.map((shortcut) => (
-                <Button
-                  key={shortcut.name}
-                  text={`${shortcut.name} - ${shortcut.label}`}
-                  variant="secondary"
-                  style={styles.menuItem}
-                  onPress={() => {
-                    onChange(instantiateGraphPathShortcut(shortcut));
-                    setIsShortcutMenuOpen(false);
-                  }}
-                />
-              ))}
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
 
       {isAdvancedOpen ? (
         <GraphPathBuilder
@@ -302,59 +331,47 @@ export function StatisticAccessRuleEditorForm({
 }: Props) {
   const { colors } = useTheme();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
-  const [expandedPolicyIds, setExpandedPolicyIds] = React.useState<Record<string, boolean>>({});
-  const [isAddMenuOpen, setIsAddMenuOpen] = React.useState(false);
   const updatePolicy = (id: string, updater: (policy: StatisticPolicy) => StatisticPolicy) =>
     setStatisticPolicies((prev) => prev.map((policy) => (policy.id === id ? updater(policy) : policy)));
 
   return (
-    <View>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      {saveMessage ? <Text style={styles.success}>{saveMessage}</Text> : null}
-      <Text style={styles.countText}>
-        {statisticPolicies.length} {statisticPolicies.length === 1 ? "policy" : "policies"}
-      </Text>
+    <View style={styles.root}>
+      {error ? (
+        <View style={styles.banner}>
+          <Text style={styles.error}>{error}</Text>
+        </View>
+      ) : null}
+      {saveMessage ? (
+        <View style={styles.banner}>
+          <Text style={styles.success}>{saveMessage}</Text>
+        </View>
+      ) : null}
 
-      {statisticPolicies.map((policy, policyIndex) => {
-        const schema = statisticAccessRuleSchemas[policy.statisticName];
-        const fields = schema ? getPolicyFieldDefinitions(schema) : [];
-        const objectFieldCount = fields.reduce((count, field) => {
-          if (field.type !== "object") return count;
-          const fieldValue = policy.values[field.key];
-          return count + (Array.isArray(fieldValue) ? fieldValue.length : 0);
-        }, 0);
-        const isExpanded = Boolean(expandedPolicyIds[policy.id]);
+      <View style={styles.policyList}>
+        {statisticPolicies.map((policy, policyIndex) => {
+          const schema = statisticAccessRuleSchemas[policy.statisticName];
+          const fields = schema ? getPolicyFieldDefinitions(schema) : [];
 
-        return (
-          <View key={policy.id} style={styles.policyCard}>
-            <Pressable
-              onPress={() =>
-                setExpandedPolicyIds((prev) => ({ ...prev, [policy.id]: !prev[policy.id] }))
-              }
-              style={styles.policyHeader}
-            >
-              <View style={styles.policyHeaderTextWrap}>
+          return (
+            <View key={policy.id} style={styles.policyCard}>
+              <View style={styles.policyHeader}>
                 <Text style={styles.policyTitle}>{policyIndex + 1}. {policy.statisticName}</Text>
-                <Text style={styles.policyMeta}>
-                  {objectFieldCount} {objectFieldCount === 1 ? "allowed path" : "allowed paths"}
-                </Text>
+                <View style={styles.policyActions}>
+                  <RemoveIconButton
+                    styles={styles}
+                    color={colors.text}
+                    onPress={() =>
+                      setStatisticPolicies((prev) => prev.filter((entry) => entry.id !== policy.id))
+                    }
+                  />
+                </View>
               </View>
-              <View style={styles.policyActions}>
-                <Button
-                  text="Remove"
-                  variant="secondary"
-                  onPress={() =>
-                    setStatisticPolicies((prev) => prev.filter((entry) => entry.id !== policy.id))
-                  }
-                />
-                <Text style={styles.expandHint}>{isExpanded ? "Collapse" : "Expand"}</Text>
-              </View>
-            </Pressable>
 
-            {isExpanded ? (
               <View style={styles.policyBody}>
                 {fields.map((field) => {
                   const fieldValue = policy.values[field.key];
+                  const normalizedFieldName = `${field.key} ${field.label}`.replace(/\s+/g, "").toLowerCase();
+                  const isAllowedPathField = normalizedFieldName.includes("allowedpath");
 
                   if (field.type === "object") {
                     const objects = Array.isArray(fieldValue)
@@ -362,14 +379,14 @@ export function StatisticAccessRuleEditorForm({
                       : [];
                     return (
                       <View key={field.key} style={styles.block}>
-                        <Text style={styles.sectionLabel}>{field.label}</Text>
+                        {isAllowedPathField ? null : <Text style={styles.sectionLabel}>{field.label}</Text>}
                         {objects.map((item, itemIndex) => (
                           <View key={item.id} style={styles.nestedCard}>
                             <View style={styles.nestedHeader}>
-                              <Text style={styles.nestedTitle}>{field.label} {itemIndex + 1}</Text>
-                              <Button
-                                text="Remove"
-                                variant="secondary"
+                              {isAllowedPathField ? <View /> : <Text style={styles.nestedTitle}>{field.label} {itemIndex + 1}</Text>}
+                              <RemoveIconButton
+                                styles={styles}
+                                color={colors.text}
                                 onPress={() =>
                                   updatePolicy(policy.id, (entry) => ({
                                     ...entry,
@@ -444,6 +461,7 @@ export function StatisticAccessRuleEditorForm({
                         <Button
                           text={`Add ${field.label}`}
                           variant="secondary"
+                          style={styles.addItemButton}
                           onPress={() =>
                             updatePolicy(policy.id, (entry) => ({
                               ...entry,
@@ -525,9 +543,9 @@ export function StatisticAccessRuleEditorForm({
                                 styles,
                               )}
                             </View>
-                            <Button
-                              text="Remove"
-                              variant="secondary"
+                            <RemoveIconButton
+                              styles={styles}
+                              color={colors.text}
                               onPress={() =>
                                 updatePolicy(policy.id, (entry) => ({
                                   ...entry,
@@ -543,6 +561,7 @@ export function StatisticAccessRuleEditorForm({
                         <Button
                           text={`Add ${field.label}`}
                           variant="secondary"
+                          style={styles.addItemButton}
                           onPress={() =>
                             updatePolicy(policy.id, (entry) => ({
                               ...entry,
@@ -574,39 +593,29 @@ export function StatisticAccessRuleEditorForm({
                   );
                 })}
               </View>
-            ) : null}
-          </View>
-        );
-      })}
-
-      <View style={styles.addPolicyRow}>
-        <Button
-          text="Add statistic plugin policy"
-          variant="secondary"
-          onPress={() => setIsAddMenuOpen(true)}
-        />
+            </View>
+          );
+        })}
       </View>
 
-      <Modal visible={isAddMenuOpen} transparent animationType="fade">
-        <Pressable style={styles.modalBackdrop} onPress={() => setIsAddMenuOpen(false)}>
-          <Pressable style={styles.menuCard}>
-            <ScrollView>
-              {statisticNames.map((name) => (
-                <Button
-                  key={name}
-                  text={name}
-                  variant="secondary"
-                  style={styles.menuItem}
-                  onPress={() => {
-                    addStatisticPolicyByName(name);
-                    setIsAddMenuOpen(false);
-                  }}
-                />
-              ))}
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <View style={styles.addPolicyRow}>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              text="Add statistic plugin policy"
+              variant="secondary"
+              style={styles.addPolicyButton}
+            />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent style={styles.dropdownContent}>
+            {statisticNames.map((name) => (
+              <DropdownMenuItem key={name} onPress={() => addStatisticPolicyByName(name)}>
+                <Text>{name}</Text>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </View>
     </View>
   );
 }

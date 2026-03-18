@@ -23,18 +23,27 @@ export const StatisticAccessRuleView: FunctionComponent = () => {
       StyleSheet.create({
         container: {
           flex: 1,
+          backgroundColor: colors.background,
+        },
+        content: {
+          padding: 20,
+          paddingBottom: 44,
+          width: "100%",
+          maxWidth: 1120,
+          alignSelf: "center",
+          gap: 14,
         },
         header: {
-          paddingHorizontal: 16,
-          paddingTop: 14,
-          paddingBottom: 10,
+          paddingHorizontal: 18,
+          paddingTop: 16,
+          paddingBottom: 14,
           borderBottomWidth: 1,
           borderBottomColor: colors.border,
           backgroundColor: colors.background,
           flexDirection: "row",
           justifyContent: "space-between",
-          alignItems: "center",
-          gap: 10,
+          alignItems: "flex-start",
+          gap: 16,
         },
         headerTextWrap: {
           flexShrink: 1,
@@ -59,12 +68,17 @@ export const StatisticAccessRuleView: FunctionComponent = () => {
           fontWeight: "700",
         },
         dataType: {
-          marginTop: 4,
+          marginTop: 8,
           opacity: 0.75,
-          fontSize: 14,
+          fontSize: 13,
+        },
+        actionsWrap: {
+          alignItems: "flex-end",
+          gap: 8,
+          minWidth: 210,
         },
         saveButton: {
-          alignSelf: "center",
+          alignSelf: "stretch",
         },
         saveButtonDisabled: {
           opacity: 0.5,
@@ -72,12 +86,8 @@ export const StatisticAccessRuleView: FunctionComponent = () => {
         scroll: {
           flex: 1,
         },
-        content: {
-          padding: 16,
-          paddingBottom: 40,
-        },
       }),
-    [colors.background, colors.border, colors.primary],
+    [colors.background, colors.border, colors.card, colors.primary],
   );
 
   if (editor.isLoading) {
@@ -113,16 +123,18 @@ export const StatisticAccessRuleView: FunctionComponent = () => {
           </View>
           <Text style={styles.dataType}>Data Type: {editor.dataSchemaName ?? "Unknown"}</Text>
         </View>
-        <Button
-          text={editor.isSaving ? "Saving..." : "Save Statistic Access Rule"}
-          variant="default"
-          style={[styles.saveButton, isSaveDisabled ? styles.saveButtonDisabled : undefined]}
-          onPress={() => {
-            if (!isSaveDisabled) {
-              void editor.save();
-            }
-          }}
-        />
+        <View style={styles.actionsWrap}>
+          <Button
+            text={editor.isSaving ? "Saving..." : "Save Changes"}
+            variant="default"
+            style={[styles.saveButton, isSaveDisabled ? styles.saveButtonDisabled : undefined]}
+            onPress={() => {
+              if (!isSaveDisabled) {
+                void editor.save();
+              }
+            }}
+          />
+        </View>
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
