@@ -4,8 +4,8 @@ import {
   MeanStatisticAccessRuleShapeType,
   mean_statisticAccessRuleSchemaSchema,
 } from "@fedresda/types";
-import { graphPathSchema } from "./util/graphPath";
-import type { GraphPath } from "./util/graphPath";
+import type { GraphPath } from "@fedresda/types";
+import { graphPathSchema } from "@fedresda/types/graphPath";
 import { executeNumericAggregateQuery } from "./util/aggregateSparqlQuery";
 import type { JSONSchema4 } from "json-schema";
 

@@ -31,8 +31,9 @@ export interface AllowedPath {
 export interface GraphPath {
   "@id"?: string;
   "@context"?: LdoJsonldContext;
-  where?: LdSet<GraphNodeFilter>;
-  step: GraphTraversalStep;
+  start: GraphNodeFilter;
+  steps?: LdSet<GraphTraversalStep>;
+  target?: GraphValueSelector;
 }
 
 /**
@@ -41,10 +42,25 @@ export interface GraphPath {
 export interface GraphNodeFilter {
   "@id"?: string;
   "@context"?: LdoJsonldContext;
+  rdfType?: LdSet<string>;
+  iri?: LdSet<string>;
+  categories?: LdSet<string>;
+  predicates?: LdSet<GraphPredicateFilter>;
+}
+
+/**
+ * GraphPredicateFilter Type
+ */
+export interface GraphPredicateFilter {
+  "@id"?: string;
+  "@context"?: LdoJsonldContext;
   predicate: {
     "@id": string;
   };
-  value: any;
+  inverse?: boolean;
+  some?: GraphValueSelector;
+  every?: GraphValueSelector;
+  none?: GraphValueSelector;
 }
 
 /**
@@ -53,10 +69,31 @@ export interface GraphNodeFilter {
 export interface GraphTraversalStep {
   "@id"?: string;
   "@context"?: LdoJsonldContext;
-  predicate: {
+  via: {
     "@id": string;
   };
   inverse?: boolean;
-  where?: LdSet<GraphNodeFilter>;
-  step?: GraphTraversalStep;
+  where?: GraphNodeFilter;
+}
+
+/**
+ * GraphValueSelector Type
+ */
+export interface GraphValueSelector {
+  "@id"?: string;
+  "@context"?: LdoJsonldContext;
+}
+
+/**
+ * GraphLiteralFilter Type
+ */
+export interface GraphLiteralFilter {
+  "@id"?: string;
+  "@context"?: LdoJsonldContext;
+  datatype?: LdSet<string>;
+  lang?: LdSet<string>;
+  equals?: any;
+  oneOf?: LdSet<any>;
+  min?: number;
+  max?: number;
 }

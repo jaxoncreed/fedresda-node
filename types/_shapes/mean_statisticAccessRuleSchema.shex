@@ -21,28 +21,70 @@ statp:AllowedPathShape {
 
 # The entry point to a graph path
 statp:GraphPathShape {
-  # A filter to find the starting node in the graph
-  statp:where @statp:GraphNodeFilterShape * ;
-  # The next step in graph traversal
-  statp:step @statp:GraphTraversalStepShape ;
+  # The starting node filter in the graph
+  statp:start @statp:GraphNodeFilterShape ;
+  # The traversal steps to follow
+  statp:steps @statp:GraphTraversalStepShape * ;
+  # Optional target selector for the resulting value
+  statp:target @statp:GraphValueSelectorShape ? ;
 }
 
-# Filters objects based on predicate value pairs
+# Filters nodes based on type/iri/category/predicate constraints
 statp:GraphNodeFilterShape {
-  # The predicate (field) to filter by
+  # Optional rdf:type constraints
+  statp:rdfType xsd:string * ;
+  # Optional subject IRI constraints
+  statp:iri xsd:string * ;
+  # Optional category constraints
+  statp:categories xsd:string * ;
+  # Optional predicate-level filters
+  statp:predicates @statp:GraphPredicateFilterShape * ;
+}
+
+# Filters a predicate edge by selector semantics
+statp:GraphPredicateFilterShape {
+  # The predicate to inspect
   statp:predicate IRI ;
-  # The value in that field to use
-  statp:value . ;
+  # Whether to inspect inverse direction
+  statp:inverse xsd:boolean ? ;
+  # At least one object must match this selector
+  statp:some @statp:GraphValueSelectorShape ? ;
+  # All objects must match this selector
+  statp:every @statp:GraphValueSelectorShape ? ;
+  # No objects may match this selector
+  statp:none @statp:GraphValueSelectorShape ? ;
 }
 
 # A step in graph traversal
 statp:GraphTraversalStepShape {
-  # The predicate to traverse
-  statp:predicate IRI ;
+  # The predicate to traverse through
+  statp:via IRI ;
   # Whether or not this is an inverse predicate (defaults to false)
   statp:inverse xsd:boolean ? ;
-  # A set of filters to filter this step.
-  statp:where @statp:GraphNodeFilterShape * ;
-  # The next step in graph traversal
-  statp:step @statp:GraphTraversalStepShape ? ;
+  # Optional node filter for the reached node
+  statp:where @statp:GraphNodeFilterShape ? ;
+}
+
+# Selects either a node filter or a literal filter
+statp:GraphValueSelectorShape {
+  (
+    statp:node @statp:GraphNodeFilterShape
+    | statp:literal @statp:GraphLiteralFilterShape
+  )
+}
+
+# Literal-specific selector constraints
+statp:GraphLiteralFilterShape {
+  # Optional datatype constraints
+  statp:datatype xsd:string * ;
+  # Optional language constraints
+  statp:lang xsd:string * ;
+  # Optional exact scalar value
+  statp:equals . ? ;
+  # Optional set of allowed scalar values
+  statp:oneOf . * ;
+  # Optional numeric lower bound
+  statp:min xsd:decimal ? ;
+  # Optional numeric upper bound
+  statp:max xsd:decimal ? ;
 }

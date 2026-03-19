@@ -1,6 +1,7 @@
 import { jsonld2graphobject } from "jsonld2graphobject";
 import type { ContextDefinition, JsonLdDocument, NodeObject } from "jsonld";
-import type { DataSchemaJsonView, GraphNodeFilterForm, GraphPathForm } from "../types";
+import type { GraphNodeFilter, GraphPath } from "@fedresda/types";
+import type { DataSchemaJsonView } from "../types";
 
 type TripleConstraint = {
   predicate: string;
@@ -30,28 +31,75 @@ type GraphPathOptionGetters = {
   getStepTargetShapeNames: StepTargetShapeNameGetter;
 };
 
-export type StartPredicateOptionGetter = (graphPath: GraphPathForm) => string[];
+export type StartPredicateOptionGetter = (graphPath: GraphPath) => string[];
 export type StartValueOptionGetter = (
-  graphPath: GraphPathForm,
+  graphPath: GraphPath,
   predicate: string,
 ) => string[];
 export type StepPredicateOptionGetter = (
-  graphPath: GraphPathForm,
+  graphPath: GraphPath,
   stepIndex: number,
 ) => string[];
 export type StepWherePredicateOptionGetter = (
-  graphPath: GraphPathForm,
+  graphPath: GraphPath,
   stepIndex: number,
 ) => string[];
 export type StepWhereValueOptionGetter = (
-  graphPath: GraphPathForm,
+  graphPath: GraphPath,
   stepIndex: number,
   predicate: string,
 ) => string[];
 export type StepTargetShapeNameGetter = (
-  graphPath: GraphPathForm,
+  graphPath: GraphPath,
   stepIndex: number,
 ) => string[];
+
+type IriObject = { "@id": string };
+type SimpleWhereFilter = { predicate: string; value: string };
+
+function toCollectionArray<T>(value: T | T[] | Iterable<T> | undefined): T[] {
+  if (value === undefined || value === null) return [];
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string") return [value as T];
+  if (typeof value === "object" && Symbol.iterator in (value as object)) {
+    return Array.from(value as Iterable<T>);
+  }
+  return [value as T];
+}
+
+function getIriValue(value: string | IriObject | undefined): string | undefined {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object" && typeof value["@id"] === "string") {
+    return value["@id"];
+  }
+  return undefined;
+}
+
+function getSingleIriValue(
+  nodeFilter: GraphNodeFilter | undefined,
+): string | undefined {
+  const iriValues = toCollectionArray(nodeFilter?.iri);
+  if (iriValues.length !== 1) return undefined;
+  return iriValues[0];
+}
+
+function toSimpleWhereFilters(nodeFilter: GraphNodeFilter | undefined): SimpleWhereFilter[] {
+  return toCollectionArray(nodeFilter?.predicates)
+    .map((filter) => {
+      const predicate = getIriValue(filter.predicate as string | IriObject | undefined);
+      const iriValue =
+        filter.some &&
+        typeof filter.some === "object" &&
+        "node" in filter.some
+          ? getSingleIriValue(
+              (filter.some as Record<string, unknown>).node as GraphNodeFilter,
+            )
+          : undefined;
+      if (!predicate || !iriValue) return null;
+      return { predicate, value: iriValue };
+    })
+    .filter((value): value is SimpleWhereFilter => Boolean(value));
+}
 
 function parseValueTokens(valueExpr: string): string[] {
   return valueExpr
@@ -175,7 +223,7 @@ function getValueOptionsForShapes(
 
 function applyWhereFilters(
   candidateShapeIds: string[],
-  where: GraphNodeFilterForm[],
+  where: SimpleWhereFilter[],
   shapeIndex: ShapeIndex,
 ): string[] {
   let current = candidateShapeIds;
@@ -224,20 +272,29 @@ function traverseByPredicate(
 }
 
 function getStepEntryShapes(
-  graphPath: GraphPathForm,
+  graphPath: GraphPath,
   stepIndex: number,
   shapeIndex: ShapeIndex,
 ): string[] {
-  let candidates = applyWhereFilters(shapeIndex.shapeIds, graphPath.where, shapeIndex);
+  let candidates = applyWhereFilters(
+    shapeIndex.shapeIds,
+    toSimpleWhereFilters(graphPath.start),
+    shapeIndex,
+  );
   for (let i = 0; i < stepIndex; i += 1) {
-    const step = graphPath.steps[i];
+    const step = toCollectionArray(graphPath.steps)[i];
+    const stepPredicate = getIriValue(step?.via as string | IriObject | undefined) ?? "";
     const traversed = traverseByPredicate(
       candidates,
-      step.predicate,
-      step.inverse,
+      stepPredicate,
+      Boolean(step?.inverse),
       shapeIndex,
     );
-    candidates = applyWhereFilters(traversed, step.where, shapeIndex);
+    candidates = applyWhereFilters(
+      traversed,
+      toSimpleWhereFilters(step?.where as GraphNodeFilter | undefined),
+      shapeIndex,
+    );
   }
   return candidates;
 }
@@ -403,10 +460,10 @@ export async function createGraphPathOptionGetters(
     stepIndex,
   ) => {
     const entry = getStepEntryShapes(graphPath, stepIndex, shapeIndex);
-    const step = graphPath.steps[stepIndex];
+    const step = toCollectionArray(graphPath.steps)[stepIndex];
     const traversed = traverseByPredicate(
       entry,
-      step?.predicate ?? "",
+      getIriValue(step?.via as string | IriObject | undefined) ?? "",
       Boolean(step?.inverse),
       shapeIndex,
     );
@@ -418,10 +475,10 @@ export async function createGraphPathOptionGetters(
     predicate,
   ) => {
     const entry = getStepEntryShapes(graphPath, stepIndex, shapeIndex);
-    const step = graphPath.steps[stepIndex];
+    const step = toCollectionArray(graphPath.steps)[stepIndex];
     const traversed = traverseByPredicate(
       entry,
-      step?.predicate ?? "",
+      getIriValue(step?.via as string | IriObject | undefined) ?? "",
       Boolean(step?.inverse),
       shapeIndex,
     );

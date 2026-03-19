@@ -1,11 +1,11 @@
 import type { StatisticPlugin } from "../StatisticPlugin";
 import {
+  GraphPath,
   KaplanMeierStatisticAccessRule,
   KaplanMeierStatisticAccessRuleShapeType,
   kaplanMeier_statisticAccessRuleSchemaSchema,
 } from "@fedresda/types";
-import { graphPathSchema } from "./util/graphPath";
-import type { GraphPath } from "./util/graphPath";
+import { graphPathSchema } from "@fedresda/types/graphPath";
 import { executeStatisticSparqlQuery } from "./util/statisticSparqlQuery";
 import { parseNumericBindingValue } from "./util/sparqlBindingParsers";
 import type { JSONSchema4 } from "json-schema";

@@ -10,8 +10,8 @@ import {
   Text,
 } from "linked-data-browser";
 import { Trash2 } from "lucide-react-native";
+import type { GraphPath } from "@fedresda/types";
 import type {
-  GraphPathForm,
   StatisticPolicy,
   StatisticAccessRuleObjectValue,
   StatisticAccessRuleScalarValue,
@@ -40,7 +40,6 @@ import {
 
 type Props = {
   error: string | null;
-  saveMessage: string | null;
   dataSchemaName: string | null;
   statisticAccessRuleSchemas: StatisticAccessRuleSchemas;
   statisticPolicies: StatisticPolicy[];
@@ -59,7 +58,7 @@ type Props = {
 
 type GraphPathFieldEditorProps = {
   dataSchemaName: string | null;
-  graphPathValue: GraphPathForm;
+  graphPathValue: GraphPath;
   graphPathShortcuts: GraphPathShortcut[];
   predicateOptions: string[];
   getStartPredicateOptions: StartPredicateOptionGetter;
@@ -68,7 +67,7 @@ type GraphPathFieldEditorProps = {
   getStepWherePredicateOptions: StepWherePredicateOptionGetter;
   getStepWhereValueOptions: StepWhereValueOptionGetter;
   getStepTargetShapeNames: StepTargetShapeNameGetter;
-  onChange: (nextGraphPath: GraphPathForm) => void;
+  onChange: (nextGraphPath: GraphPath) => void;
 };
 
 function createStyles(colors: ReturnType<typeof useTheme>["colors"]) {
@@ -84,7 +83,6 @@ function createStyles(colors: ReturnType<typeof useTheme>["colors"]) {
       backgroundColor: colors.card,
     },
     error: { color: colors.notification },
-    success: { color: colors.primary },
     policyList: {
       gap: 12,
     },
@@ -265,9 +263,7 @@ function GraphPathFieldEditor({
   const styles = React.useMemo(() => createStyles(colors), [colors]);
   const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(false);
   const matchedShortcut = resolveGraphPathShortcut(dataSchemaName, graphPathValue);
-  const choosePathLabel = matchedShortcut
-    ? `${matchedShortcut.name} - ${matchedShortcut.label}`
-    : "Choose path";
+  const choosePathLabel = matchedShortcut ? matchedShortcut.name : "Choose path";
 
   return (
     <View style={styles.fieldWrapper}>
@@ -282,7 +278,7 @@ function GraphPathFieldEditor({
                 key={shortcut.name}
                 onPress={() => onChange(instantiateGraphPathShortcut(shortcut))}
               >
-                <Text>{`${shortcut.name} - ${shortcut.label}`}</Text>
+                <Text>{shortcut.name}</Text>
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
@@ -313,7 +309,6 @@ function GraphPathFieldEditor({
 
 export function StatisticAccessRuleEditorForm({
   error,
-  saveMessage,
   dataSchemaName,
   statisticAccessRuleSchemas,
   statisticPolicies,
@@ -339,11 +334,6 @@ export function StatisticAccessRuleEditorForm({
       {error ? (
         <View style={styles.banner}>
           <Text style={styles.error}>{error}</Text>
-        </View>
-      ) : null}
-      {saveMessage ? (
-        <View style={styles.banner}>
-          <Text style={styles.success}>{saveMessage}</Text>
         </View>
       ) : null}
 
@@ -412,7 +402,7 @@ export function StatisticAccessRuleEditorForm({
                                       getStepWherePredicateOptions={getStepWherePredicateOptions}
                                       getStepWhereValueOptions={getStepWhereValueOptions}
                                       getStepTargetShapeNames={getStepTargetShapeNames}
-                                      onChange={(nextGraphPath: GraphPathForm) =>
+                                      onChange={(nextGraphPath: GraphPath) =>
                                         updatePolicy(policy.id, (entry) => ({
                                           ...entry,
                                           values: {
@@ -508,7 +498,7 @@ export function StatisticAccessRuleEditorForm({
                           getStepWherePredicateOptions={getStepWherePredicateOptions}
                           getStepWhereValueOptions={getStepWhereValueOptions}
                           getStepTargetShapeNames={getStepTargetShapeNames}
-                          onChange={(nextGraphPath: GraphPathForm) =>
+                          onChange={(nextGraphPath: GraphPath) =>
                             updatePolicy(policy.id, (entry) => ({
                               ...entry,
                               values: { ...entry.values, [field.key]: nextGraphPath },

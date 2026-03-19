@@ -4,11 +4,14 @@ import type {
   GraphPath,
   GraphPredicateFilter,
   GraphValueSelector,
-} from "./graphPath";
+} from "@fedresda/types";
 
 type WherePatternAppender<T> = {
   WHERE(strings: TemplateStringsArray, ...values: unknown[]): T;
 };
+
+type IriObject = { "@id": string };
+type ScalarLiteral = string | number | boolean;
 
 type GraphPathSparqlBuildResult = {
   startVar: string;
@@ -72,9 +75,49 @@ function appendPattern<T extends WherePatternAppender<T>>(
   return query.WHERE(toTemplateStringsArray(pattern));
 }
 
-function toArray<T>(value: T | T[] | undefined): T[] {
-  if (value === undefined) return [];
-  return Array.isArray(value) ? value : [value];
+function toCollectionArray<T>(value: T | T[] | Iterable<T> | undefined): T[] {
+  if (value === undefined || value === null) return [];
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string") {
+    return [value as T];
+  }
+  if (typeof value === "object" && Symbol.iterator in (value as object)) {
+    return Array.from(value as Iterable<T>);
+  }
+  return [value as T];
+}
+
+function isIriObject(value: unknown): value is IriObject {
+  if (!value || typeof value !== "object") return false;
+  const maybe = value as Record<string, unknown>;
+  return typeof maybe["@id"] === "string";
+}
+
+function toIriString(
+  value: string | IriObject | undefined,
+): string | undefined {
+  if (typeof value === "string") return value;
+  if (isIriObject(value)) return value["@id"];
+  return undefined;
+}
+
+function getRequiredIri(
+  value: string | IriObject | undefined,
+  fieldName: string,
+): string {
+  const iri = toIriString(value);
+  if (!iri) {
+    throw new Error(`Expected IRI value for ${fieldName} in graph path.`);
+  }
+  return iri;
+}
+
+function isScalarLiteral(value: unknown): value is ScalarLiteral {
+  return (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  );
 }
 
 export function toIriToken(value: string): string {
@@ -127,7 +170,7 @@ function addNodeFilterPattern(
 ): void {
   if (!filter) return;
 
-  const rdfTypes = toArray(filter.rdfType);
+  const rdfTypes = toCollectionArray(filter.rdfType);
   if (rdfTypes.length > 0) {
     const typeVar = builder.nextVar("type");
     builder.addLine(`${nodeVar} ${RDF_TYPE} ${typeVar} .`);
@@ -136,14 +179,14 @@ function addNodeFilterPattern(
     );
   }
 
-  const iris = toArray(filter.iri);
+  const iris = toCollectionArray(filter.iri);
   if (iris.length > 0) {
     builder.addLine(
       `VALUES ${nodeVar} { ${iris.map((item) => toIriToken(item)).join(" ")} }`,
     );
   }
 
-  const categories = toArray(filter.categories);
+  const categories = toCollectionArray(filter.categories);
   if (categories.length > 0) {
     const categoryVar = builder.nextVar("category");
     builder.addLine(`${nodeVar} ${GIST_IS_CATEGORIZED_BY} ${categoryVar} .`);
@@ -152,7 +195,7 @@ function addNodeFilterPattern(
     );
   }
 
-  for (const predicateFilter of filter.predicates ?? []) {
+  for (const predicateFilter of toCollectionArray(filter.predicates)) {
     addPredicateFilterPattern(builder, nodeVar, predicateFilter);
   }
 }
@@ -163,10 +206,21 @@ function addValueSelectorPattern(
   selector: GraphValueSelector | undefined,
 ): void {
   if (!selector) return;
-  if ("node" in selector) {
-    addNodeFilterPattern(builder, valueVar, selector.node);
-  } else {
-    addLiteralFilterPattern(builder, valueVar, selector.literal);
+  const selectorRecord = selector as Record<string, unknown>;
+  if ("node" in selectorRecord) {
+    addNodeFilterPattern(
+      builder,
+      valueVar,
+      selectorRecord.node as GraphNodeFilter,
+    );
+    return;
+  }
+  if ("literal" in selectorRecord) {
+    addLiteralFilterPattern(
+      builder,
+      valueVar,
+      selectorRecord.literal as GraphLiteralFilter,
+    );
   }
 }
 
@@ -189,11 +243,11 @@ function addPredicateFilterPattern(
   nodeVar: string,
   filter: GraphPredicateFilter,
 ): void {
+  const predicate = getRequiredIri(filter.predicate, "predicate");
+
   if (filter.some) {
     const someVar = builder.nextVar("some");
-    builder.addLine(
-      triplePattern(nodeVar, filter.predicate, someVar, filter.inverse),
-    );
+    builder.addLine(triplePattern(nodeVar, predicate, someVar, filter.inverse));
     addValueSelectorPattern(builder, someVar, filter.some);
   }
 
@@ -202,7 +256,7 @@ function addPredicateFilterPattern(
     const selector = selectorPattern(noneVar, filter.none);
     if (selector.requiresXsdPrefix) builder.markUsesXsdPrefix();
     const innerLines = [
-      triplePattern(nodeVar, filter.predicate, noneVar, filter.inverse),
+      triplePattern(nodeVar, predicate, noneVar, filter.inverse),
       ...selector.lines,
     ];
     builder.addLine(`FILTER NOT EXISTS {\n${asIndentedGroup(innerLines)}\n}`);
@@ -213,7 +267,7 @@ function addPredicateFilterPattern(
     const selector = selectorPattern(everyVar, filter.every);
     if (selector.requiresXsdPrefix) builder.markUsesXsdPrefix();
     const violationLines = [
-      triplePattern(nodeVar, filter.predicate, everyVar, filter.inverse),
+      triplePattern(nodeVar, predicate, everyVar, filter.inverse),
     ];
     if (selector.lines.length > 0) {
       violationLines.push(
@@ -227,9 +281,7 @@ function addPredicateFilterPattern(
 
   if (!filter.some && !filter.none && !filter.every) {
     const anyVar = builder.nextVar("any");
-    builder.addLine(
-      triplePattern(nodeVar, filter.predicate, anyVar, filter.inverse),
-    );
+    builder.addLine(triplePattern(nodeVar, predicate, anyVar, filter.inverse));
   }
 }
 
@@ -240,7 +292,7 @@ function addLiteralFilterPattern(
 ): void {
   if (!filter) return;
 
-  const datatypes = toArray(filter.datatype);
+  const datatypes = toCollectionArray(filter.datatype);
   if (datatypes.length > 0) {
     builder.addLine(
       `FILTER(datatype(${valueVar}) IN (${datatypes
@@ -249,7 +301,7 @@ function addLiteralFilterPattern(
     );
   }
 
-  const languages = toArray(filter.lang);
+  const languages = toCollectionArray(filter.lang);
   if (languages.length > 0) {
     builder.addLine(
       `FILTER(LCASE(lang(${valueVar})) IN (${languages
@@ -258,13 +310,14 @@ function addLiteralFilterPattern(
     );
   }
 
-  if (filter.equals !== undefined) {
+  if (isScalarLiteral(filter.equals)) {
     builder.addLine(`FILTER(${valueVar} = ${toLiteralToken(filter.equals)})`);
   }
-  if (filter.oneOf && filter.oneOf.length > 0) {
+  const oneOfValues = toCollectionArray(filter.oneOf).filter(isScalarLiteral);
+  if (oneOfValues.length > 0) {
     builder.addLine(
-      `FILTER(${valueVar} IN (${filter.oneOf
-        .map((item) => toLiteralToken(item))
+      `FILTER(${valueVar} IN (${oneOfValues
+        .map((item: ScalarLiteral) => toLiteralToken(item))
         .join(", ")}))`,
     );
   }
@@ -291,9 +344,16 @@ export function buildGraphPathWhereClause(
   let currentVar = startVar;
 
   addNodeFilterPattern(builder, currentVar, graphPath.start);
-  for (const step of graphPath.steps) {
+  for (const step of toCollectionArray(graphPath.steps)) {
     const nextVar = builder.nextVar("node");
-    builder.addLine(triplePattern(currentVar, step.via, nextVar, step.inverse));
+    builder.addLine(
+      triplePattern(
+        currentVar,
+        getRequiredIri(step.via, "via"),
+        nextVar,
+        step.inverse,
+      ),
+    );
     addNodeFilterPattern(builder, nextVar, step.where);
     currentVar = nextVar;
   }

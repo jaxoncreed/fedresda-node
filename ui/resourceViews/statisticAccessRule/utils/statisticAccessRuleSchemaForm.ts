@@ -1,8 +1,8 @@
 import type { Schema } from "shexj";
+import type { GraphPath } from "@fedresda/types";
 import {
   createEmptyGraphPath,
   makeId,
-  type GraphPathForm,
   type StatisticPolicy,
   type StatisticAccessRuleObjectValue,
   type StatisticAccessRuleScalarValue,
@@ -206,9 +206,9 @@ export function createDefaultStatisticPolicy(
 
 export function getGraphPathFromValue(
   value: StatisticAccessRuleValue | undefined,
-): GraphPathForm {
-  if (value && typeof value === "object" && "where" in value && "steps" in value) {
-    return value as GraphPathForm;
+): GraphPath {
+  if (value && typeof value === "object" && "start" in value) {
+    return value as GraphPath;
   }
   return createEmptyGraphPath();
 }

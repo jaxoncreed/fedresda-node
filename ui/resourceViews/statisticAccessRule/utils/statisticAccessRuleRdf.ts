@@ -1,15 +1,21 @@
-import { parseRdf } from "@ldo/ldo";
+import { parseRdf, set } from "@ldo/ldo";
 import { namedNode } from "@ldo/rdf-utils";
 import type {
-  GraphNodeFilterForm,
-  GraphPathForm,
+  GraphLiteralFilter,
+  GraphNodeFilter,
+  GraphPath,
+  GraphPredicateFilter,
+  GraphTraversalStep,
+  GraphValueSelector,
+} from "@fedresda/types";
+import type {
   StatisticPolicy,
   StatisticAccessRuleLoadResult,
   StatisticAccessRuleScalarValue,
   StatisticAccessRuleSchemas,
   StatisticAccessRuleValue,
 } from "../types";
-import { createEmptyGraphPath, createEmptyNodeFilter, makeId } from "../types";
+import { createEmptyGraphPath, makeId } from "../types";
 import {
   createDefaultPolicyValues,
   getGraphPathFromValue,
@@ -22,16 +28,33 @@ const STATP = "https://fedresda.setmeld.org/statistics#";
 const DATA_SCHEMA_PREDICATE = `${SAR}dataSchema`;
 const HAS_STATISTIC_POLICY_PREDICATE = `${SAR}hasStatisticPolicy`;
 const STATISTIC_NAME_PREDICATE = `${SAR}statisticName`;
-const STEP_PREDICATE = `${STATP}step`;
-const WHERE_PREDICATE = `${STATP}where`;
-const PREDICATE_PREDICATE = `${STATP}predicate`;
-const VALUE_PREDICATE = `${STATP}value`;
+const START_PREDICATE = `${STATP}start`;
+const STEPS_PREDICATE = `${STATP}steps`;
+const TARGET_PREDICATE = `${STATP}target`;
+const VIA_PREDICATE = `${STATP}via`;
 const INVERSE_PREDICATE = `${STATP}inverse`;
-const HAS_STEP_PREDICATE = `${STATP}step`;
-const START_STEP_PREDICATE = `${STATP}step`;
+const WHERE_PREDICATE = `${STATP}where`;
+const RDF_TYPE_PREDICATE = `${STATP}rdfType`;
+const IRI_PREDICATE = `${STATP}iri`;
+const CATEGORIES_PREDICATE = `${STATP}categories`;
+const PREDICATES_PREDICATE = `${STATP}predicates`;
+const PREDICATE_PREDICATE = `${STATP}predicate`;
+const SOME_PREDICATE = `${STATP}some`;
+const EVERY_PREDICATE = `${STATP}every`;
+const NONE_PREDICATE = `${STATP}none`;
+const NODE_PREDICATE = `${STATP}node`;
+const LITERAL_PREDICATE = `${STATP}literal`;
+const DATATYPE_PREDICATE = `${STATP}datatype`;
+const LANG_PREDICATE = `${STATP}lang`;
+const EQUALS_PREDICATE = `${STATP}equals`;
+const ONE_OF_PREDICATE = `${STATP}oneOf`;
+const MIN_PREDICATE = `${STATP}min`;
+const MAX_PREDICATE = `${STATP}max`;
 
 type RdfTerm = { termType?: string; value?: string };
 type Quad = { subject?: RdfTerm; object?: RdfTerm };
+type IriObject = { "@id": string };
+type ScalarLiteral = string | number | boolean;
 
 function asArray(matchResult: unknown): Quad[] {
   const maybeToArray = matchResult as { toArray?: () => unknown[] };
@@ -82,6 +105,7 @@ function allObjectNodeValues(
     (q) => q.subject?.value === subjectValue,
   );
   return matches
+    .filter((m) => m.object?.termType === "NamedNode" || m.object?.termType === "BlankNode")
     .map((m) => m.object?.value)
     .filter((v): v is string => typeof v === "string");
 }
@@ -90,103 +114,398 @@ function escapeTurtleLiteral(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
-function toObjectTerm(value: string): string {
-  if (/^https?:\/\//i.test(value)) {
-    return `<${value}>`;
-  }
+function toLiteralTerm(value: string): string {
   return `"${escapeTurtleLiteral(value)}"`;
 }
 
-function parseWhereFilter(
+function toIriToken(value: string): string {
+  if (value.startsWith("<") && value.endsWith(">")) return value;
+  if (
+    value.startsWith("http://") ||
+    value.startsWith("https://") ||
+    value.startsWith("urn:")
+  ) {
+    return `<${value}>`;
+  }
+  return value;
+}
+
+function toCollectionArray<T>(value: T | T[] | Iterable<T> | undefined): T[] {
+  if (value === undefined || value === null) return [];
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string") return [value as T];
+  if (typeof value === "object" && Symbol.iterator in (value as object)) {
+    return Array.from(value as Iterable<T>);
+  }
+  return [value as T];
+}
+
+function toBoolean(value: string | null): boolean | undefined {
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return undefined;
+}
+
+function toNumber(value: string | null): number | undefined {
+  if (value === null) return undefined;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : undefined;
+}
+
+function toScalarLiteral(value: string): ScalarLiteral {
+  if (value === "true") return true;
+  if (value === "false") return false;
+  if (/^-?\d+(\.\d+)?$/.test(value)) return Number(value);
+  return value;
+}
+
+function isIriObject(value: unknown): value is IriObject {
+  if (!value || typeof value !== "object") return false;
+  const maybe = value as Record<string, unknown>;
+  return typeof maybe["@id"] === "string";
+}
+
+function getIriValue(value: string | IriObject | undefined): string | undefined {
+  if (typeof value === "string") return value;
+  if (isIriObject(value)) return value["@id"];
+  return undefined;
+}
+
+function toIriObject(value: string | undefined): IriObject | undefined {
+  return value ? { "@id": value } : undefined;
+}
+
+function parseGraphLiteralFilter(
   dataset: { match: (s: unknown, p: unknown, o: unknown) => unknown },
-  filterNodeId: string | undefined,
-): GraphNodeFilterForm {
-  if (!filterNodeId) return createEmptyNodeFilter();
+  literalNodeId: string | undefined,
+): GraphLiteralFilter {
+  if (!literalNodeId) return {};
+  const datatype = allLiterals(dataset, literalNodeId, DATATYPE_PREDICATE);
+  const lang = allLiterals(dataset, literalNodeId, LANG_PREDICATE);
+  const equalsLiteral = firstLiteral(dataset, literalNodeId, EQUALS_PREDICATE);
+  const oneOfValues = allLiterals(dataset, literalNodeId, ONE_OF_PREDICATE).map(
+    (item) => toScalarLiteral(item),
+  );
   return {
-    id: makeId("where"),
-    predicate:
-      firstLiteral(dataset, filterNodeId, PREDICATE_PREDICATE) ?? "",
-    value: firstLiteral(dataset, filterNodeId, VALUE_PREDICATE) ?? "",
+    datatype: datatype.length > 0 ? set(...datatype) : undefined,
+    lang: lang.length > 0 ? set(...lang) : undefined,
+    equals: equalsLiteral !== null ? toScalarLiteral(equalsLiteral) : undefined,
+    oneOf: oneOfValues.length > 0 ? set(...oneOfValues) : undefined,
+    min: toNumber(firstLiteral(dataset, literalNodeId, MIN_PREDICATE)),
+    max: toNumber(firstLiteral(dataset, literalNodeId, MAX_PREDICATE)),
   };
 }
 
-function parseStepChain(
+function parseGraphValueSelector(
   dataset: { match: (s: unknown, p: unknown, o: unknown) => unknown },
-  stepNode: string | undefined,
-): GraphPathForm["steps"] {
-  if (!stepNode) return [];
-  const step = {
-    id: makeId("step"),
-    predicate: firstLiteral(dataset, stepNode, PREDICATE_PREDICATE) ?? "",
-    inverse: (firstLiteral(dataset, stepNode, INVERSE_PREDICATE) ?? "") === "true",
-    where: allObjectNodeValues(dataset, stepNode, WHERE_PREDICATE).map((whereNode) =>
-      parseWhereFilter(dataset, whereNode),
-    ),
+  selectorNodeId: string | undefined,
+): GraphValueSelector {
+  if (!selectorNodeId) return {};
+  const nodeNodeId = allObjectNodeValues(dataset, selectorNodeId, NODE_PREDICATE)[0];
+  if (nodeNodeId) {
+    return { node: parseGraphNodeFilter(dataset, nodeNodeId) } as GraphValueSelector;
+  }
+  const literalNodeId = allObjectNodeValues(dataset, selectorNodeId, LITERAL_PREDICATE)[0];
+  if (literalNodeId) {
+    return { literal: parseGraphLiteralFilter(dataset, literalNodeId) } as GraphValueSelector;
+  }
+  return {};
+}
+
+function parseGraphPredicateFilter(
+  dataset: { match: (s: unknown, p: unknown, o: unknown) => unknown },
+  predicateFilterNodeId: string | undefined,
+): GraphPredicateFilter | null {
+  if (!predicateFilterNodeId) return null;
+  const predicate = toIriObject(
+    allObjectNodeValues(dataset, predicateFilterNodeId, PREDICATE_PREDICATE)[0],
+  );
+  if (!predicate) return null;
+  const someNode = allObjectNodeValues(dataset, predicateFilterNodeId, SOME_PREDICATE)[0];
+  const everyNode = allObjectNodeValues(dataset, predicateFilterNodeId, EVERY_PREDICATE)[0];
+  const noneNode = allObjectNodeValues(dataset, predicateFilterNodeId, NONE_PREDICATE)[0];
+  return {
+    predicate,
+    inverse: toBoolean(firstLiteral(dataset, predicateFilterNodeId, INVERSE_PREDICATE)),
+    some: someNode ? parseGraphValueSelector(dataset, someNode) : undefined,
+    every: everyNode ? parseGraphValueSelector(dataset, everyNode) : undefined,
+    none: noneNode ? parseGraphValueSelector(dataset, noneNode) : undefined,
   };
-  const nextStepNode = allObjectNodeValues(dataset, stepNode, STEP_PREDICATE)[0];
-  return [step, ...parseStepChain(dataset, nextStepNode)];
+}
+
+function parseGraphNodeFilter(
+  dataset: { match: (s: unknown, p: unknown, o: unknown) => unknown },
+  filterNodeId: string | undefined,
+): GraphNodeFilter {
+  if (!filterNodeId) return {};
+  const predicates = allObjectNodeValues(dataset, filterNodeId, PREDICATES_PREDICATE)
+    .map((predicateFilterNodeId) =>
+      parseGraphPredicateFilter(dataset, predicateFilterNodeId),
+    )
+    .filter((value): value is GraphPredicateFilter => Boolean(value));
+  return {
+    rdfType: set(...allLiterals(dataset, filterNodeId, RDF_TYPE_PREDICATE)),
+    iri: set(...allLiterals(dataset, filterNodeId, IRI_PREDICATE)),
+    categories: set(...allLiterals(dataset, filterNodeId, CATEGORIES_PREDICATE)),
+    predicates: predicates.length > 0 ? set(...predicates) : undefined,
+  };
+}
+
+function parseGraphTraversalStep(
+  dataset: { match: (s: unknown, p: unknown, o: unknown) => unknown },
+  stepNodeId: string | undefined,
+): GraphTraversalStep | null {
+  if (!stepNodeId) return null;
+  const via = toIriObject(allObjectNodeValues(dataset, stepNodeId, VIA_PREDICATE)[0]);
+  if (!via) return null;
+  const whereNode = allObjectNodeValues(dataset, stepNodeId, WHERE_PREDICATE)[0];
+  return {
+    via,
+    inverse: toBoolean(firstLiteral(dataset, stepNodeId, INVERSE_PREDICATE)),
+    where: whereNode ? parseGraphNodeFilter(dataset, whereNode) : undefined,
+  };
 }
 
 function parseGraphPath(
   dataset: { match: (s: unknown, p: unknown, o: unknown) => unknown },
   graphPathNode: string | undefined,
-): GraphPathForm {
+): GraphPath {
   if (!graphPathNode) return createEmptyGraphPath();
-  const startStepNode = allObjectNodeValues(dataset, graphPathNode, START_STEP_PREDICATE)[0];
-  const steps = parseStepChain(dataset, startStepNode);
+  const startNodeId = allObjectNodeValues(dataset, graphPathNode, START_PREDICATE)[0];
+  const steps = allObjectNodeValues(dataset, graphPathNode, STEPS_PREDICATE)
+    .map((stepNode) => parseGraphTraversalStep(dataset, stepNode))
+    .filter((value): value is GraphTraversalStep => Boolean(value));
+  const targetNodeId = allObjectNodeValues(dataset, graphPathNode, TARGET_PREDICATE)[0];
   return {
-    where: allObjectNodeValues(dataset, graphPathNode, WHERE_PREDICATE).map((whereNode) =>
-      parseWhereFilter(dataset, whereNode),
-    ),
-    steps:
-      steps.length > 0
-        ? steps
-        : [
-            {
-              id: makeId("step"),
-              predicate: "",
-              inverse: false,
-              where: [],
-            },
-          ],
+    start: parseGraphNodeFilter(dataset, startNodeId),
+    steps: set(...steps),
+    target: targetNodeId
+      ? parseGraphValueSelector(dataset, targetNodeId)
+      : undefined,
   };
 }
 
-function whereFilterInline(filter: GraphNodeFilterForm): string {
-  const predicateTerm = /^https?:\/\//i.test(filter.predicate)
-    ? `<${filter.predicate}>`
-    : `"${escapeTurtleLiteral(filter.predicate)}"`;
-  return `[ statp:predicate ${predicateTerm} ; statp:value ${toObjectTerm(filter.value)} ]`;
+function toIriTerm(value: string | IriObject | undefined): string | null {
+  const iri = getIriValue(value);
+  if (!iri) return null;
+  return toIriToken(iri);
 }
 
-function stepInline(step: GraphPathForm["steps"][number]): string {
-  const predicateTerm = /^https?:\/\//i.test(step.predicate)
-    ? `<${step.predicate}>`
-    : `"${escapeTurtleLiteral(step.predicate)}"`;
-  const parts: string[] = [`statp:predicate ${predicateTerm}`];
-  if (step.inverse) {
-    parts.push("statp:inverse true");
-  }
-  step.where.forEach((filter) => {
-    parts.push(`statp:where ${whereFilterInline(filter)}`);
-  });
-  return `[ ${parts.join(" ; ")} ]`;
+function toScalarLiteralTerm(value: ScalarLiteral): string {
+  if (typeof value === "number") return `${Number(value)}`;
+  if (typeof value === "boolean") return value ? "true" : "false";
+  return toLiteralTerm(value);
 }
 
-function graphPathInline(graphPath: GraphPathForm): string {
-  const parts: string[] = [];
-  graphPath.where.forEach((filter) => {
-    parts.push(`statp:where ${whereFilterInline(filter)}`);
+function createNamedNode(prefix: string): string {
+  return `<#${makeId(prefix)}>`;
+}
+
+function addTriple(
+  lines: string[],
+  subject: string,
+  predicate: string,
+  object: string,
+): void {
+  lines.push(`${subject} ${predicate} ${object} .`);
+}
+
+function addGraphLiteralFilter(
+  lines: string[],
+  filter: GraphLiteralFilter,
+): string {
+  const literalNode = createNamedNode("literal");
+  toCollectionArray(filter.datatype).forEach((datatype) => {
+    addTriple(lines, literalNode, "statp:datatype", toLiteralTerm(datatype));
   });
-  const [firstStep, ...nextSteps] = graphPath.steps;
-  if (firstStep) {
-    let chained = stepInline(firstStep);
-    nextSteps.forEach((step) => {
-      chained = chained.replace(/\]$/, ` ; statp:step ${stepInline(step)} ]`);
-    });
-    parts.push(`statp:step ${chained}`);
+  toCollectionArray(filter.lang).forEach((lang) => {
+    addTriple(lines, literalNode, "statp:lang", toLiteralTerm(lang));
+  });
+  if (
+    typeof filter.equals === "string" ||
+    typeof filter.equals === "number" ||
+    typeof filter.equals === "boolean"
+  ) {
+    addTriple(
+      lines,
+      literalNode,
+      "statp:equals",
+      toScalarLiteralTerm(filter.equals),
+    );
   }
-  return `[ ${parts.join(" ; ")} ]`;
+  toCollectionArray(filter.oneOf).forEach((value) => {
+    if (
+      typeof value === "string" ||
+      typeof value === "number" ||
+      typeof value === "boolean"
+    ) {
+      addTriple(lines, literalNode, "statp:oneOf", toScalarLiteralTerm(value));
+    }
+  });
+  if (typeof filter.min === "number") {
+    addTriple(lines, literalNode, "statp:min", `${filter.min}`);
+  }
+  if (typeof filter.max === "number") {
+    addTriple(lines, literalNode, "statp:max", `${filter.max}`);
+  }
+  return literalNode;
+}
+
+function addGraphValueSelector(
+  lines: string[],
+  selector: GraphValueSelector | undefined,
+): string | null {
+  if (!selector) return null;
+  const selectorRecord = selector as Record<string, unknown>;
+  const selectorNode = createNamedNode("selector");
+  if ("node" in selectorRecord && selectorRecord.node) {
+    const nodeFilterNode = addGraphNodeFilter(
+      lines,
+      selectorRecord.node as GraphNodeFilter,
+    );
+    addTriple(lines, selectorNode, "statp:node", nodeFilterNode);
+    return selectorNode;
+  }
+  if ("literal" in selectorRecord && selectorRecord.literal) {
+    const literalNode = addGraphLiteralFilter(
+      lines,
+      selectorRecord.literal as GraphLiteralFilter,
+    );
+    addTriple(lines, selectorNode, "statp:literal", literalNode);
+    return selectorNode;
+  }
+  return null;
+}
+
+function addGraphPredicateFilter(
+  lines: string[],
+  filter: GraphPredicateFilter,
+): string | null {
+  const predicateTerm = toIriTerm(filter.predicate);
+  if (!predicateTerm) return null;
+  const filterNode = createNamedNode("predicate-filter");
+  addTriple(lines, filterNode, "statp:predicate", predicateTerm);
+  if (filter.inverse === true) {
+    addTriple(lines, filterNode, "statp:inverse", "true");
+  }
+  const someNode = addGraphValueSelector(lines, filter.some);
+  if (someNode) addTriple(lines, filterNode, "statp:some", someNode);
+  const everyNode = addGraphValueSelector(lines, filter.every);
+  if (everyNode) addTriple(lines, filterNode, "statp:every", everyNode);
+  const noneNode = addGraphValueSelector(lines, filter.none);
+  if (noneNode) addTriple(lines, filterNode, "statp:none", noneNode);
+  return filterNode;
+}
+
+function addGraphNodeFilter(lines: string[], filter: GraphNodeFilter): string {
+  const nodeFilterNode = createNamedNode("node-filter");
+  toCollectionArray(filter.rdfType).forEach((value) => {
+    addTriple(lines, nodeFilterNode, "statp:rdfType", toLiteralTerm(value));
+  });
+  toCollectionArray(filter.iri).forEach((value) => {
+    addTriple(lines, nodeFilterNode, "statp:iri", toLiteralTerm(value));
+  });
+  toCollectionArray(filter.categories).forEach((value) => {
+    addTriple(lines, nodeFilterNode, "statp:categories", toLiteralTerm(value));
+  });
+  toCollectionArray(filter.predicates).forEach((predicateFilter) => {
+    const predicateFilterNode = addGraphPredicateFilter(lines, predicateFilter);
+    if (predicateFilterNode) {
+      addTriple(lines, nodeFilterNode, "statp:predicates", predicateFilterNode);
+    }
+  });
+  return nodeFilterNode;
+}
+
+function addGraphTraversalStep(
+  lines: string[],
+  step: GraphTraversalStep,
+): string | null {
+  const via = toIriTerm(step.via);
+  if (!via) return null;
+  const stepNode = createNamedNode("step");
+  addTriple(lines, stepNode, "statp:via", via);
+  if (step.inverse === true) {
+    addTriple(lines, stepNode, "statp:inverse", "true");
+  }
+  if (step.where) {
+    const whereNode = addGraphNodeFilter(lines, step.where);
+    addTriple(lines, stepNode, "statp:where", whereNode);
+  }
+  return stepNode;
+}
+
+function addGraphPath(lines: string[], graphPath: GraphPath): string {
+  const graphPathNode = createNamedNode("graph-path");
+  const startNode = addGraphNodeFilter(lines, graphPath.start);
+  addTriple(lines, graphPathNode, "statp:start", startNode);
+  toCollectionArray(graphPath.steps).forEach((step) => {
+    const stepNode = addGraphTraversalStep(lines, step);
+    if (stepNode) addTriple(lines, graphPathNode, "statp:steps", stepNode);
+  });
+  const targetNode = addGraphValueSelector(lines, graphPath.target);
+  if (targetNode) addTriple(lines, graphPathNode, "statp:target", targetNode);
+  return graphPathNode;
+}
+
+function appendFieldsForSubject(
+  lines: string[],
+  subjectNode: string,
+  fields: SchemaFieldDefinition[],
+  values: Record<string, StatisticAccessRuleValue>,
+): void {
+  fields.forEach((field) => {
+    const value = values[field.key];
+    const predicateTerm = `<${field.predicate}>`;
+    if (field.type === "graphPath") {
+      if (field.repeated) {
+        const list = Array.isArray(value) ? (value as GraphPath[]) : [];
+        list.forEach((graphPath) => {
+          const graphPathNode = addGraphPath(lines, graphPath);
+          addTriple(lines, subjectNode, predicateTerm, graphPathNode);
+        });
+        return;
+      }
+      const graphPath = getGraphPathFromValue(value);
+      const graphPathNode = addGraphPath(lines, graphPath);
+      addTriple(lines, subjectNode, predicateTerm, graphPathNode);
+      return;
+    }
+
+    if (field.type === "object") {
+      const items = Array.isArray(value)
+        ? (value as { values: Record<string, StatisticAccessRuleValue> }[])
+        : [];
+      items.forEach((item) => {
+        const objectNode = createNamedNode("field-object");
+        addTriple(lines, subjectNode, predicateTerm, objectNode);
+        appendFieldsForSubject(
+          lines,
+          objectNode,
+          field.nestedFields ?? [],
+          item.values,
+        );
+      });
+      return;
+    }
+
+    if (field.repeated) {
+      const list = Array.isArray(value)
+        ? (value as StatisticAccessRuleScalarValue[])
+        : [];
+      list.forEach((item) => {
+        addTriple(lines, subjectNode, predicateTerm, toLiteral(item));
+      });
+      return;
+    }
+
+    addTriple(
+      lines,
+      subjectNode,
+      predicateTerm,
+      toLiteral((value as StatisticAccessRuleScalarValue) ?? ""),
+    );
+  });
 }
 
 export function getStatisticAccessRuleTtlUri(targetUri: string): string {
@@ -291,25 +610,24 @@ export function buildStatisticAccessRuleTurtle(
     `@prefix sar: <${SAR}> .`,
     `@prefix statp: <${STATP}> .`,
     "",
-    "<#policy> a sar:StatisticAccessRule ;",
-    `  sar:dataSchema "${escapeTurtleLiteral(dataSchemaName ?? "nemaline")}"`,
+    "<#policy> a sar:StatisticAccessRule .",
+    `<#policy> sar:dataSchema "${escapeTurtleLiteral(dataSchemaName ?? "nemaline")}" .`,
   ];
 
-  if (statisticPolicies.length === 0) {
-    lines.push("  .", "");
-    return lines.join("\n");
-  }
-
-  lines[lines.length - 1] += " ;";
-  statisticPolicies.forEach((policy, policyIndex) => {
+  statisticPolicies.forEach((policy) => {
     const schema = statisticAccessRuleSchemas[policy.statisticName];
     const fieldDefs = schema ? getPolicyFieldDefinitions(schema) : [];
-    const isLastPolicy = policyIndex === statisticPolicies.length - 1;
-    lines.push("  sar:hasStatisticPolicy [");
-    lines.push(`    sar:statisticName "${policy.statisticName}" ;`);
-    appendPolicyFields(lines, policy, fieldDefs);
-    lines.push(`  ]${isLastPolicy ? " ." : " ;"}`);
+    const policyNode = createNamedNode("statistic-policy");
+    addTriple(lines, "<#policy>", "sar:hasStatisticPolicy", policyNode);
+    addTriple(
+      lines,
+      policyNode,
+      "sar:statisticName",
+      toLiteralTerm(policy.statisticName),
+    );
+    appendFieldsForSubject(lines, policyNode, fieldDefs, policy.values);
   });
+
   lines.push("");
   return lines.join("\n");
 }
@@ -372,94 +690,3 @@ function parseScalarLiteral(
   }
   return literal;
 }
-
-function appendPolicyFields(
-  lines: string[],
-  policy: StatisticPolicy,
-  fields: SchemaFieldDefinition[],
-) {
-  const rendered: string[] = [];
-  fields.forEach((field) => {
-    const value = policy.values[field.key];
-    if (field.type === "graphPath") {
-      if (field.repeated) {
-        const list = Array.isArray(value) ? (value as GraphPathForm[]) : [];
-        list.forEach((graphPath) => {
-          rendered.push(`    <${field.predicate}> ${graphPathInline(graphPath)} ;`);
-        });
-        return;
-      }
-      const graphPath = getGraphPathFromValue(value);
-      rendered.push(`    <${field.predicate}> ${graphPathInline(graphPath)} ;`);
-      return;
-    }
-
-    if (field.type === "object") {
-      const items = Array.isArray(value) ? value : [];
-      (items as { values: Record<string, StatisticAccessRuleValue> }[]).forEach((item) => {
-        const nestedLines: string[] = [];
-        (field.nestedFields ?? []).forEach((nestedField) => {
-          appendNestedField(nestedLines, nestedField, item.values[nestedField.key]);
-        });
-        if (nestedLines.length > 0) {
-          const last = nestedLines[nestedLines.length - 1];
-          nestedLines[nestedLines.length - 1] = last.replace(/ ;$/, "");
-        }
-        rendered.push(`    <${field.predicate}> [`);
-        nestedLines.forEach((line) => rendered.push(line));
-        rendered.push("    ] ;");
-      });
-      return;
-    }
-
-    if (field.repeated) {
-      const list = Array.isArray(value)
-        ? (value as StatisticAccessRuleScalarValue[])
-        : [];
-      list.forEach((item) => {
-        rendered.push(`    <${field.predicate}> ${toLiteral(item)} ;`);
-      });
-      return;
-    }
-
-    rendered.push(
-      `    <${field.predicate}> ${toLiteral((value as StatisticAccessRuleScalarValue) ?? "")} ;`,
-    );
-  });
-
-  if (rendered.length > 0) {
-    const last = rendered[rendered.length - 1];
-    rendered[rendered.length - 1] = last.replace(/ ;$/, "");
-    lines.push(...rendered);
-  } else {
-    const last = lines[lines.length - 1];
-    lines[lines.length - 1] = last.replace(/ ;$/, "");
-  }
-}
-
-function appendNestedField(
-  lines: string[],
-  field: SchemaFieldDefinition,
-  value: StatisticAccessRuleValue | undefined,
-) {
-  if (field.type === "graphPath") {
-    lines.push(`      <${field.predicate}> ${graphPathInline(getGraphPathFromValue(value))} ;`);
-    return;
-  }
-  if (field.type === "object") {
-    return;
-  }
-  if (field.repeated) {
-    const list = Array.isArray(value)
-      ? (value as StatisticAccessRuleScalarValue[])
-      : [];
-    list.forEach((item) => {
-      lines.push(`      <${field.predicate}> ${toLiteral(item)} ;`);
-    });
-    return;
-  }
-  lines.push(
-    `      <${field.predicate}> ${toLiteral((value as StatisticAccessRuleScalarValue) ?? "")} ;`,
-  );
-}
-

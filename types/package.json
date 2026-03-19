@@ -8,6 +8,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./graphPath": {
+      "types": "./dist/graphPath.d.ts",
+      "default": "./dist/graphPath.js"
     }
   },
   "scripts": {

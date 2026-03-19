@@ -2,7 +2,7 @@ import React from "react";
 import { StyleSheet, TextInput, View } from "react-native";
 import { useTheme } from "@react-navigation/native";
 import { Button, Text } from "linked-data-browser";
-import type { GraphPathForm } from "../types";
+import type { GraphNodeFilter, GraphPath } from "@fedresda/types";
 import type {
   StartPredicateOptionGetter,
   StartValueOptionGetter,
@@ -13,7 +13,7 @@ import type {
 } from "../utils/graphPathOptionResolver";
 
 type Props = {
-  value: GraphPathForm;
+  value: GraphPath;
   predicateOptions: string[];
   getStartPredicateOptions: StartPredicateOptionGetter;
   getStartValueOptions: StartValueOptionGetter;
@@ -21,18 +21,45 @@ type Props = {
   getStepWherePredicateOptions: StepWherePredicateOptionGetter;
   getStepWhereValueOptions: StepWhereValueOptionGetter;
   getStepTargetShapeNames: StepTargetShapeNameGetter;
-  onChange: (next: GraphPathForm) => void;
+  onChange: (next: GraphPath) => void;
 };
 
-function parseGraphPath(value: string): GraphPathForm | null {
+function parseGraphPath(value: string): GraphPath | null {
   try {
     const parsed = JSON.parse(value);
     if (!parsed || typeof parsed !== "object") return null;
-    if (!("where" in parsed) || !("steps" in parsed)) return null;
-    return parsed as GraphPathForm;
+    if (!("start" in parsed)) return null;
+    return parsed as GraphPath;
   } catch {
     return null;
   }
+}
+
+type IriObject = { "@id": string };
+
+function toCollectionArray<T>(value: T | T[] | Iterable<T> | undefined): T[] {
+  if (value === undefined || value === null) return [];
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string") return [value as T];
+  if (typeof value === "object" && Symbol.iterator in (value as object)) {
+    return Array.from(value as Iterable<T>);
+  }
+  return [value as T];
+}
+
+function getIriValue(value: string | IriObject | undefined): string | undefined {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object" && typeof value["@id"] === "string") {
+    return value["@id"];
+  }
+  return undefined;
+}
+
+function getSimpleWhereFilters(nodeFilter: GraphNodeFilter | undefined): Array<{ predicate: string }> {
+  return toCollectionArray(nodeFilter?.predicates).flatMap((filter) => {
+    const predicate = getIriValue(filter.predicate as string | IriObject | undefined);
+    return predicate ? [{ predicate }] : [];
+  });
 }
 
 export function GraphPathBuilder({
@@ -101,17 +128,22 @@ export function GraphPathBuilder({
     setJsonDraft(JSON.stringify(value, null, 2));
   }, [value]);
 
+  const steps = toCollectionArray(value.steps);
+  const startWhere = getSimpleWhereFilters(value.start);
+  const firstStepWhere = getSimpleWhereFilters(steps[0]?.where as GraphNodeFilter | undefined);
   const startPredicates = getStartPredicateOptions(value).length;
-  const firstStepPredicates = value.steps.length > 0 ? getStepPredicateOptions(value, 0).length : 0;
+  const firstStepPredicates = steps.length > 0 ? getStepPredicateOptions(value, 0).length : 0;
   const firstStepWherePredicates =
-    value.steps.length > 0 ? getStepWherePredicateOptions(value, 0).length : 0;
+    steps.length > 0 ? getStepWherePredicateOptions(value, 0).length : 0;
   const firstStepWhereValues =
-    value.steps.length > 0 && value.steps[0]?.where[0]?.predicate
-      ? getStepWhereValueOptions(value, 0, value.steps[0].where[0].predicate).length
+    steps.length > 0 && firstStepWhere[0]?.predicate
+      ? getStepWhereValueOptions(value, 0, firstStepWhere[0].predicate).length
       : 0;
-  const firstStepShapes = value.steps.length > 0 ? getStepTargetShapeNames(value, 0).length : 0;
+  const firstStepShapes = steps.length > 0 ? getStepTargetShapeNames(value, 0).length : 0;
   const firstStartValueOptions =
-    value.where[0]?.predicate ? getStartValueOptions(value, value.where[0].predicate).length : 0;
+    startWhere[0]?.predicate
+      ? getStartValueOptions(value, startWhere[0].predicate).length
+      : 0;
 
   return (
     <View style={styles.container}>
