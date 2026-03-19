@@ -21,25 +21,27 @@ export function GraphPathInput({
     () =>
       StyleSheet.create({
         wrapper: {
-          marginBottom: 10,
+          gap: 8,
         },
         label: {
           fontWeight: "600",
-          marginBottom: 6,
+          fontSize: 13,
         },
         selectedRow: {
           flexDirection: "row",
           flexWrap: "wrap",
           gap: 6,
-          marginBottom: 8,
         },
         pill: {
           borderWidth: 1,
           borderColor: colors.border,
           borderRadius: 999,
-          paddingHorizontal: 8,
-          paddingVertical: 2,
+          paddingHorizontal: 10,
+          paddingVertical: 4,
           backgroundColor: colors.card,
+        },
+        triggerButton: {
+          alignSelf: "flex-start",
         },
         modalBackdrop: {
           flex: 1,
@@ -51,12 +53,12 @@ export function GraphPathInput({
         menuCard: {
           width: "100%",
           maxWidth: 420,
-          maxHeight: 360,
+          maxHeight: 420,
           borderWidth: 1,
           borderColor: colors.border,
-          borderRadius: 10,
+          borderRadius: 12,
           backgroundColor: colors.card,
-          padding: 8,
+          padding: 10,
         },
         menuItem: {
           marginBottom: 6,
@@ -80,7 +82,12 @@ export function GraphPathInput({
           ))}
         </View>
       ) : null}
-      <Button text="Choose predicates" variant="secondary" onPress={() => setIsOpen(true)} />
+      <Button
+        text="Choose predicates"
+        variant="secondary"
+        style={styles.triggerButton}
+        onPress={() => setIsOpen(true)}
+      />
       <Modal visible={isOpen} transparent animationType="fade">
         <Pressable style={styles.modalBackdrop} onPress={() => setIsOpen(false)}>
           <Pressable style={styles.menuCard}>
