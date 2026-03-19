@@ -7,6 +7,7 @@ import {
 import type { GraphPath } from "@fedresda/types";
 import { graphPathSchema } from "@fedresda/types/graphPath";
 import { executeNumericAggregateQuery } from "./util/aggregateSparqlQuery";
+import { evaluateMeanStatisticAccessRule } from "./util/evaluateMeanStatisticAccessRule";
 import type { JSONSchema4 } from "json-schema";
 
 export type MeanQuery = {
@@ -43,12 +44,10 @@ export const meanPlugin: StatisticPlugin<
   statisticAccessRuleShapeType: MeanStatisticAccessRuleShapeType,
   querySchema: meanQuerySchema,
   evaluateStatisticAccessRule(query, statisticAccessRule): true | Error {
-    // TODO
-    console.log("Query");
-    console.log(JSON.stringify(query, null, 2));
-    console.log("meanStatisicAccessRule");
-    console.log(JSON.stringify(statisticAccessRule, null, 2));
-    return true;
+    return evaluateMeanStatisticAccessRule(
+      query.graphPath,
+      statisticAccessRule,
+    );
   },
   async performQuery(query, globals): Promise<MeanOutput> {
     const meanValue = await executeNumericAggregateQuery({
