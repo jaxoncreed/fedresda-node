@@ -73,66 +73,69 @@ type GraphPathFieldEditorProps = {
 function createStyles(colors: ReturnType<typeof useTheme>["colors"]) {
   return StyleSheet.create({
     root: {
-      gap: 12,
+      gap: 14,
     },
     banner: {
       borderWidth: 1,
-      borderRadius: 10,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
+      borderColor: colors.notification,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
       backgroundColor: colors.card,
     },
     error: { color: colors.notification },
     policyList: {
-      gap: 12,
+      gap: 14,
     },
     policyCard: {
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 12,
-      padding: 14,
+      borderRadius: 14,
+      padding: 16,
       backgroundColor: colors.card,
     },
     policyHeader: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      gap: 8,
+      gap: 10,
+      minHeight: 32,
     },
-    policyTitle: { fontWeight: "700", fontSize: 16 },
-    policyActions: { alignItems: "flex-end", gap: 4 },
+    policyTitle: { fontWeight: "700", fontSize: 16, flexShrink: 1, paddingRight: 8 },
+    policyActions: { alignItems: "center", justifyContent: "center" },
     policyBody: {
       borderTopWidth: 1,
       borderTopColor: colors.border,
-      marginTop: 12,
-      paddingTop: 12,
+      marginTop: 14,
+      paddingTop: 14,
+      gap: 12,
     },
-    block: { marginBottom: 14 },
-    sectionLabel: { fontWeight: "700", marginBottom: 8, fontSize: 14 },
-    fieldWrapper: { marginBottom: 12 },
-    fieldLabel: { marginBottom: 6, fontWeight: "600", fontSize: 13, opacity: 0.92 },
+    block: { gap: 10 },
+    sectionLabel: { fontWeight: "700", marginBottom: 2, fontSize: 14 },
+    fieldWrapper: { gap: 6 },
+    fieldLabel: { fontWeight: "600", fontSize: 13, opacity: 0.92 },
     nestedCard: {
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 10,
+      borderRadius: 12,
       padding: 12,
-      marginBottom: 10,
       backgroundColor: colors.background,
+      gap: 10,
     },
     nestedHeader: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
       gap: 8,
-      marginBottom: 10,
     },
+    nestedHeaderSpacer: { flex: 1 },
     nestedTitle: { fontWeight: "600", fontSize: 13 },
     input: {
-      minHeight: 38,
+      minHeight: 40,
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 8,
-      paddingHorizontal: 10,
+      borderRadius: 10,
+      paddingHorizontal: 12,
       paddingVertical: 8,
       backgroundColor: colors.background,
       color: colors.text,
@@ -143,38 +146,49 @@ function createStyles(colors: ReturnType<typeof useTheme>["colors"]) {
       flexDirection: "row",
       alignItems: "center",
       gap: 8,
-      marginBottom: 8,
     },
     repeatedInputWrap: {
       flex: 1,
     },
+    nestedItemsList: {
+      gap: 10,
+    },
+    repeatedList: {
+      gap: 8,
+    },
     addPolicyRow: {
-      marginTop: 6,
+      marginTop: 4,
       alignItems: "center",
       width: "100%",
     },
     addPolicyButton: {
-      minWidth: 230,
+      minWidth: 260,
       alignSelf: "center",
     },
     addItemButton: {
-      alignSelf: "center",
+      alignSelf: "flex-start",
     },
     inlineRow: {
       flexDirection: "row",
       flexWrap: "wrap",
       alignItems: "center",
-      gap: 10,
-      marginBottom: 10,
+      gap: 8,
+      justifyContent: "flex-start",
+    },
+    secondaryActionButton: {
+      minWidth: 120,
+    },
+    graphPathBuilderWrap: {
+      marginTop: 8,
     },
     dropdownTriggerButton: {
-      minWidth: 280,
-      maxWidth: 420,
+      minWidth: 240,
+      maxWidth: 460,
     },
     dropdownContent: {
       maxHeight: 320,
       minWidth: 280,
-      paddingVertical: 6,
+      paddingVertical: 8,
       paddingHorizontal: 6,
     },
     iconButton: {
@@ -182,7 +196,7 @@ function createStyles(colors: ReturnType<typeof useTheme>["colors"]) {
       height: 32,
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 8,
+      borderRadius: 10,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.background,
@@ -286,22 +300,25 @@ function GraphPathFieldEditor({
         <Button
           text={isAdvancedOpen ? "Hide advanced" : "Advanced"}
           variant="secondary"
+          style={styles.secondaryActionButton}
           onPress={() => setIsAdvancedOpen((prev) => !prev)}
         />
       </View>
 
       {isAdvancedOpen ? (
-        <GraphPathBuilder
-          value={graphPathValue}
-          predicateOptions={predicateOptions}
-          getStartPredicateOptions={getStartPredicateOptions}
-          getStartValueOptions={getStartValueOptions}
-          getStepPredicateOptions={getStepPredicateOptions}
-          getStepWherePredicateOptions={getStepWherePredicateOptions}
-          getStepWhereValueOptions={getStepWhereValueOptions}
-          getStepTargetShapeNames={getStepTargetShapeNames}
-          onChange={onChange}
-        />
+        <View style={styles.graphPathBuilderWrap}>
+          <GraphPathBuilder
+            value={graphPathValue}
+            predicateOptions={predicateOptions}
+            getStartPredicateOptions={getStartPredicateOptions}
+            getStartValueOptions={getStartValueOptions}
+            getStepPredicateOptions={getStepPredicateOptions}
+            getStepWherePredicateOptions={getStepWherePredicateOptions}
+            getStepWhereValueOptions={getStepWhereValueOptions}
+            getStepTargetShapeNames={getStepTargetShapeNames}
+            onChange={onChange}
+          />
+        </View>
       ) : null}
     </View>
   );
@@ -370,39 +387,71 @@ export function StatisticAccessRuleEditorForm({
                     return (
                       <View key={field.key} style={styles.block}>
                         {isAllowedPathField ? null : <Text style={styles.sectionLabel}>{field.label}</Text>}
-                        {objects.map((item, itemIndex) => (
-                          <View key={item.id} style={styles.nestedCard}>
-                            <View style={styles.nestedHeader}>
-                              {isAllowedPathField ? <View /> : <Text style={styles.nestedTitle}>{field.label} {itemIndex + 1}</Text>}
-                              <RemoveIconButton
-                                styles={styles}
-                                color={colors.text}
-                                onPress={() =>
-                                  updatePolicy(policy.id, (entry) => ({
-                                    ...entry,
-                                    values: { ...entry.values, [field.key]: objects.filter((x) => x.id !== item.id) },
-                                  }))
+                        <View style={styles.nestedItemsList}>
+                          {objects.map((item, itemIndex) => (
+                            <View key={item.id} style={styles.nestedCard}>
+                              <View style={styles.nestedHeader}>
+                                {isAllowedPathField ? (
+                                  <View style={styles.nestedHeaderSpacer} />
+                                ) : (
+                                  <Text style={styles.nestedTitle}>{field.label} {itemIndex + 1}</Text>
+                                )}
+                                <RemoveIconButton
+                                  styles={styles}
+                                  color={colors.text}
+                                  onPress={() =>
+                                    updatePolicy(policy.id, (entry) => ({
+                                      ...entry,
+                                      values: { ...entry.values, [field.key]: objects.filter((x) => x.id !== item.id) },
+                                    }))
+                                  }
+                                />
+                              </View>
+                              {(field.nestedFields ?? []).map((nestedField) => {
+                                const nestedValue = item.values[nestedField.key];
+                                if (nestedField.type === "graphPath") {
+                                  return (
+                                    <View key={nestedField.key} style={styles.fieldWrapper}>
+                                      <Text style={styles.fieldLabel}>{nestedField.label}</Text>
+                                      <GraphPathFieldEditor
+                                        dataSchemaName={dataSchemaName}
+                                        graphPathValue={getGraphPathFromValue(nestedValue)}
+                                        graphPathShortcuts={graphPathShortcuts}
+                                        predicateOptions={predicateOptions}
+                                        getStartPredicateOptions={getStartPredicateOptions}
+                                        getStartValueOptions={getStartValueOptions}
+                                        getStepPredicateOptions={getStepPredicateOptions}
+                                        getStepWherePredicateOptions={getStepWherePredicateOptions}
+                                        getStepWhereValueOptions={getStepWhereValueOptions}
+                                        getStepTargetShapeNames={getStepTargetShapeNames}
+                                        onChange={(nextGraphPath: GraphPath) =>
+                                          updatePolicy(policy.id, (entry) => ({
+                                            ...entry,
+                                            values: {
+                                              ...entry.values,
+                                              [field.key]: objects.map((x) =>
+                                                x.id !== item.id
+                                                  ? x
+                                                  : {
+                                                      ...x,
+                                                      values: { ...x.values, [nestedField.key]: nextGraphPath },
+                                                    },
+                                              ),
+                                            },
+                                          }))
+                                        }
+                                      />
+                                    </View>
+                                  );
                                 }
-                              />
-                            </View>
-                            {(field.nestedFields ?? []).map((nestedField) => {
-                              const nestedValue = item.values[nestedField.key];
-                              if (nestedField.type === "graphPath") {
+                                if (nestedField.type === "object") return null;
                                 return (
                                   <View key={nestedField.key} style={styles.fieldWrapper}>
                                     <Text style={styles.fieldLabel}>{nestedField.label}</Text>
-                                    <GraphPathFieldEditor
-                                      dataSchemaName={dataSchemaName}
-                                      graphPathValue={getGraphPathFromValue(nestedValue)}
-                                      graphPathShortcuts={graphPathShortcuts}
-                                      predicateOptions={predicateOptions}
-                                      getStartPredicateOptions={getStartPredicateOptions}
-                                      getStartValueOptions={getStartValueOptions}
-                                      getStepPredicateOptions={getStepPredicateOptions}
-                                      getStepWherePredicateOptions={getStepWherePredicateOptions}
-                                      getStepWhereValueOptions={getStepWhereValueOptions}
-                                      getStepTargetShapeNames={getStepTargetShapeNames}
-                                      onChange={(nextGraphPath: GraphPath) =>
+                                    {renderScalarInput(
+                                      (nestedValue as StatisticAccessRuleScalarValue) ?? "",
+                                      nestedField,
+                                      (nextValue) =>
                                         updatePolicy(policy.id, (entry) => ({
                                           ...entry,
                                           values: {
@@ -410,44 +459,18 @@ export function StatisticAccessRuleEditorForm({
                                             [field.key]: objects.map((x) =>
                                               x.id !== item.id
                                                 ? x
-                                                : {
-                                                    ...x,
-                                                    values: { ...x.values, [nestedField.key]: nextGraphPath },
-                                                  },
+                                                : { ...x, values: { ...x.values, [nestedField.key]: nextValue } },
                                             ),
                                           },
-                                        }))
-                                      }
-                                    />
+                                        })),
+                                      styles,
+                                    )}
                                   </View>
                                 );
-                              }
-                              if (nestedField.type === "object") return null;
-                              return (
-                                <View key={nestedField.key} style={styles.fieldWrapper}>
-                                  <Text style={styles.fieldLabel}>{nestedField.label}</Text>
-                                  {renderScalarInput(
-                                    (nestedValue as StatisticAccessRuleScalarValue) ?? "",
-                                    nestedField,
-                                    (nextValue) =>
-                                      updatePolicy(policy.id, (entry) => ({
-                                        ...entry,
-                                        values: {
-                                          ...entry.values,
-                                          [field.key]: objects.map((x) =>
-                                            x.id !== item.id
-                                              ? x
-                                              : { ...x, values: { ...x.values, [nestedField.key]: nextValue } },
-                                          ),
-                                        },
-                                      })),
-                                    styles,
-                                  )}
-                                </View>
-                              );
-                            })}
-                          </View>
-                        ))}
+                              })}
+                            </View>
+                          ))}
+                        </View>
                         <Button
                           text={`Add ${field.label}`}
                           variant="secondary"
@@ -516,38 +539,40 @@ export function StatisticAccessRuleEditorForm({
                     return (
                       <View key={field.key} style={styles.block}>
                         <Text style={styles.sectionLabel}>{field.label}</Text>
-                        {values.map((itemValue, itemIndex) => (
-                          <View key={`${field.key}-${itemIndex}`} style={styles.repeatedItem}>
-                            <View style={styles.repeatedInputWrap}>
-                              {renderScalarInput(
-                                itemValue,
-                                field,
-                                (nextValue) =>
+                        <View style={styles.repeatedList}>
+                          {values.map((itemValue, itemIndex) => (
+                            <View key={`${field.key}-${itemIndex}`} style={styles.repeatedItem}>
+                              <View style={styles.repeatedInputWrap}>
+                                {renderScalarInput(
+                                  itemValue,
+                                  field,
+                                  (nextValue) =>
+                                    updatePolicy(policy.id, (entry) => ({
+                                      ...entry,
+                                      values: {
+                                        ...entry.values,
+                                        [field.key]: values.map((v, idx) => (idx === itemIndex ? nextValue : v)),
+                                      },
+                                    })),
+                                  styles,
+                                )}
+                              </View>
+                              <RemoveIconButton
+                                styles={styles}
+                                color={colors.text}
+                                onPress={() =>
                                   updatePolicy(policy.id, (entry) => ({
                                     ...entry,
                                     values: {
                                       ...entry.values,
-                                      [field.key]: values.map((v, idx) => (idx === itemIndex ? nextValue : v)),
+                                      [field.key]: values.filter((_, idx) => idx !== itemIndex),
                                     },
-                                  })),
-                                styles,
-                              )}
+                                  }))
+                                }
+                              />
                             </View>
-                            <RemoveIconButton
-                              styles={styles}
-                              color={colors.text}
-                              onPress={() =>
-                                updatePolicy(policy.id, (entry) => ({
-                                  ...entry,
-                                  values: {
-                                    ...entry.values,
-                                    [field.key]: values.filter((_, idx) => idx !== itemIndex),
-                                  },
-                                }))
-                              }
-                            />
-                          </View>
-                        ))}
+                          ))}
+                        </View>
                         <Button
                           text={`Add ${field.label}`}
                           variant="secondary"

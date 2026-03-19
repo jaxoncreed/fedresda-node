@@ -80,40 +80,54 @@ export function GraphPathBuilder({
         container: {
           borderWidth: 1,
           borderColor: colors.border,
-          borderRadius: 10,
-          padding: 10,
+          borderRadius: 12,
+          padding: 12,
           backgroundColor: colors.card,
+          gap: 10,
+        },
+        headerRow: {
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10,
         },
         title: {
-          marginBottom: 8,
           fontWeight: "600",
+          fontSize: 14,
+          flexShrink: 1,
         },
         codeInput: {
-          minHeight: 160,
+          minHeight: 180,
           borderWidth: 1,
           borderColor: colors.border,
-          borderRadius: 8,
-          paddingHorizontal: 10,
-          paddingVertical: 10,
+          borderRadius: 10,
+          paddingHorizontal: 12,
+          paddingVertical: 12,
           backgroundColor: colors.background,
           color: colors.text,
           fontFamily: "monospace",
-          fontSize: 12,
+          fontSize: 13,
+          lineHeight: 18,
           textAlignVertical: "top",
         },
-        actions: {
-          marginTop: 8,
+        metricsRow: {
           flexDirection: "row",
-          gap: 8,
           flexWrap: "wrap",
+          gap: 8,
         },
-        meta: {
-          marginTop: 8,
+        metricPill: {
+          borderWidth: 1,
+          borderColor: colors.border,
+          borderRadius: 999,
+          paddingHorizontal: 10,
+          paddingVertical: 4,
+          backgroundColor: colors.background,
+        },
+        metricText: {
           fontSize: 12,
-          opacity: 0.75,
+          opacity: 0.85,
         },
         error: {
-          marginTop: 6,
           color: colors.notification,
           fontSize: 12,
         },
@@ -144,10 +158,34 @@ export function GraphPathBuilder({
     startWhere[0]?.predicate
       ? getStartValueOptions(value, startWhere[0].predicate).length
       : 0;
+  const metrics = [
+    `predicates: ${predicateOptions.length}`,
+    `start predicates: ${startPredicates}`,
+    `start values: ${firstStartValueOptions}`,
+    `step predicates: ${firstStepPredicates}`,
+    `step where predicates: ${firstStepWherePredicates}`,
+    `step where values: ${firstStepWhereValues}`,
+    `step target shapes: ${firstStepShapes}`,
+  ];
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Graph Path (Advanced)</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Graph Path (Advanced)</Text>
+        <Button
+          text="Format JSON"
+          variant="secondary"
+          onPress={() => {
+            const parsed = parseGraphPath(jsonDraft);
+            if (!parsed) {
+              setJsonError("Invalid graph path JSON");
+              return;
+            }
+            setJsonError(null);
+            setJsonDraft(JSON.stringify(parsed, null, 2));
+          }}
+        />
+      </View>
       <TextInput
         value={jsonDraft}
         onChangeText={(nextValue) => {
@@ -167,27 +205,13 @@ export function GraphPathBuilder({
         style={styles.codeInput}
       />
       {jsonError ? <Text style={styles.error}>{jsonError}</Text> : null}
-      <View style={styles.actions}>
-        <Button
-          text="Format JSON"
-          variant="secondary"
-          onPress={() => {
-            const parsed = parseGraphPath(jsonDraft);
-            if (!parsed) {
-              setJsonError("Invalid graph path JSON");
-              return;
-            }
-            setJsonError(null);
-            setJsonDraft(JSON.stringify(parsed, null, 2));
-          }}
-        />
+      <View style={styles.metricsRow}>
+        {metrics.map((metric) => (
+          <View key={metric} style={styles.metricPill}>
+            <Text style={styles.metricText}>{metric}</Text>
+          </View>
+        ))}
       </View>
-      <Text style={styles.meta}>
-        predicates: {predicateOptions.length} | start predicates: {startPredicates} | start values:{" "}
-        {firstStartValueOptions} | step predicates: {firstStepPredicates} | step where predicates:{" "}
-        {firstStepWherePredicates} | step where values: {firstStepWhereValues} | step target shapes:{" "}
-        {firstStepShapes}
-      </Text>
     </View>
   );
 }
