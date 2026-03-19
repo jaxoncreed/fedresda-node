@@ -57,23 +57,36 @@ function toComparableFilter(filterValue: unknown): ComparableWhereFilter | null 
 function toComparableWhereFilters(nodeFilter: GraphNodeFilter | undefined): ComparableWhereFilter[] {
   return toCollectionArray(nodeFilter?.predicates)
     .map((filter) => toComparableFilter(filter))
-    .filter((value): value is ComparableWhereFilter => Boolean(value));
+    .filter((value): value is ComparableWhereFilter => Boolean(value))
+    .sort((a, b) => {
+      const aKey = `${a.predicate}|${a.value}`;
+      const bKey = `${b.predicate}|${b.value}`;
+      return aKey.localeCompare(bKey);
+    });
 }
 
 function toComparableGraphPath(graphPath: GraphPath): ComparableGraphPath {
+  const steps = toCollectionArray(graphPath.steps)
+    .map((step): ComparableStep | null => {
+      const predicate = getIriValue(step.via as string | IriObject | undefined);
+      if (!predicate) return null;
+      const where = toComparableWhereFilters(step.where as GraphNodeFilter | undefined);
+      return {
+        predicate,
+        inverse: Boolean(step.inverse),
+        where,
+      };
+    })
+    .filter((value): value is ComparableStep => Boolean(value))
+    .sort((a, b) => {
+      const aKey = `${a.predicate}|${a.inverse ? "1" : "0"}|${JSON.stringify(a.where)}`;
+      const bKey = `${b.predicate}|${b.inverse ? "1" : "0"}|${JSON.stringify(b.where)}`;
+      return aKey.localeCompare(bKey);
+    });
+
   return {
     where: toComparableWhereFilters(graphPath.start),
-    steps: toCollectionArray(graphPath.steps)
-      .map((step): ComparableStep | null => {
-        const predicate = getIriValue(step.via as string | IriObject | undefined);
-        if (!predicate) return null;
-        return {
-          predicate,
-          inverse: Boolean(step.inverse),
-          where: toComparableWhereFilters(step.where as GraphNodeFilter | undefined),
-        };
-      })
-      .filter((value): value is ComparableStep => Boolean(value)),
+    steps,
   };
 }
 
