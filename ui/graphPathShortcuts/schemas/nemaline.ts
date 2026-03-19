@@ -1,8 +1,4 @@
-import type {
-  GraphPathShortcut,
-  GraphPathShortcutSchemaModule,
-  QueryGraphNodeFilter,
-} from "../types";
+import type { GraphPathShortcutMap } from "../types";
 
 const RDF_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 const GIST_PERSON = "https://w3id.org/semanticarts/ns/ontology/gist/Person";
@@ -50,17 +46,14 @@ const NM_ASPECT_MFM32_VISIT_SCORE =
   "https://paediatrics.ox.ac.uk/nemaline-myopathy/terms/Aspect_MFM32_VisitScore";
 const GIST_ASPECT_AGE = "https://w3id.org/semanticarts/ns/ontology/gist/Aspect_Age";
 
-const PERSON_TYPE_FILTER = [
-  {
-    predicate: RDF_TYPE,
-    value: GIST_PERSON,
-  },
-];
+function iriRef(value: string): { "@id": string } {
+  return { "@id": value };
+}
 
-const PERSON_START_SELECTOR: QueryGraphNodeFilter = {
+const PERSON_START_SELECTOR = {
   predicates: [
     {
-      predicate: RDF_TYPE,
+      predicate: iriRef(RDF_TYPE),
       some: {
         node: {
           iri: GIST_PERSON,
@@ -70,392 +63,199 @@ const PERSON_START_SELECTOR: QueryGraphNodeFilter = {
   ],
 };
 
-const nemalineGraphPathShortcuts: GraphPathShortcut[] = [
-  {
-    name: "PersonId",
-    label: "Person ID",
-    description: "Person -> isIdentifiedBy -> uniqueText",
-    template: {
-      where: PERSON_TYPE_FILTER,
-      steps: [{ predicate: GIST_IS_IDENTIFIED_BY }, { predicate: GIST_UNIQUE_TEXT }],
-    },
-    queryPath: {
-      start: PERSON_START_SELECTOR,
-      steps: [{ via: GIST_IS_IDENTIFIED_BY }, { via: GIST_UNIQUE_TEXT }],
-    },
+export const nemalineGraphPathShortcuts = {
+  PersonId: {
+    start: PERSON_START_SELECTOR,
+    steps: [{ via: iriRef(GIST_IS_IDENTIFIED_BY) }, { via: iriRef(GIST_UNIQUE_TEXT) }],
   },
-  {
-    name: "ClusterCategory",
-    label: "Cluster category",
-    description: "Person -> isCategorizedBy (cluster category node)",
-    template: {
-      where: PERSON_TYPE_FILTER,
-      steps: [{ predicate: GIST_IS_CATEGORIZED_BY }],
-    },
-    queryPath: {
-      start: PERSON_START_SELECTOR,
-      steps: [{ via: GIST_IS_CATEGORIZED_BY }],
-      target: { node: { iri: [NM_CLUSTER_1, NM_CLUSTER_2, NM_CLUSTER_3] } },
-    },
+  ClusterCategory: {
+    start: PERSON_START_SELECTOR,
+    steps: [{ via: iriRef(GIST_IS_CATEGORIZED_BY) }],
+    target: { node: { iri: [NM_CLUSTER_1, NM_CLUSTER_2, NM_CLUSTER_3] } },
   },
-  {
-    name: "GeneticGroup",
-    label: "Genetic group category",
-    description: "Person -> isCategorizedBy (genetic group category node)",
-    template: {
-      where: PERSON_TYPE_FILTER,
-      steps: [{ predicate: GIST_IS_CATEGORIZED_BY }],
-    },
-    queryPath: {
-      start: PERSON_START_SELECTOR,
-      steps: [{ via: GIST_IS_CATEGORIZED_BY }],
-      target: {
-        node: { iri: [NM_GENETIC_VARIANT_1, NM_GENETIC_VARIANT_2, NM_GENETIC_VARIANT_3] },
-      },
-    },
+  GeneticGroup: {
+    start: PERSON_START_SELECTOR,
+    steps: [{ via: iriRef(GIST_IS_CATEGORIZED_BY) }],
+    target: { node: { iri: [NM_GENETIC_VARIANT_1, NM_GENETIC_VARIANT_2, NM_GENETIC_VARIANT_3] } },
   },
-  {
-    name: "AmbulationStatus",
-    label: "Ambulation status category",
-    description: "Person -> isCategorizedBy (ambulant/non-ambulant category node)",
-    template: {
-      where: PERSON_TYPE_FILTER,
-      steps: [{ predicate: GIST_IS_CATEGORIZED_BY }],
-    },
-    queryPath: {
-      start: PERSON_START_SELECTOR,
-      steps: [{ via: GIST_IS_CATEGORIZED_BY }],
-      target: { node: { iri: [NM_STATUS_AMBULANT, NM_STATUS_NON_AMBULANT] } },
-    },
+  AmbulationStatus: {
+    start: PERSON_START_SELECTOR,
+    steps: [{ via: iriRef(GIST_IS_CATEGORIZED_BY) }],
+    target: { node: { iri: [NM_STATUS_AMBULANT, NM_STATUS_NON_AMBULANT] } },
   },
-  {
-    name: "DominantHand",
-    label: "Dominant hand category",
-    description: "Person -> isCategorizedBy (left/right handed category node)",
-    template: {
-      where: PERSON_TYPE_FILTER,
-      steps: [{ predicate: GIST_IS_CATEGORIZED_BY }],
-    },
-    queryPath: {
-      start: PERSON_START_SELECTOR,
-      steps: [{ via: GIST_IS_CATEGORIZED_BY }],
-      target: { node: { iri: [OX_LEFT_HANDED, OX_RIGHT_HANDED] } },
-    },
+  DominantHand: {
+    start: PERSON_START_SELECTOR,
+    steps: [{ via: iriRef(GIST_IS_CATEGORIZED_BY) }],
+    target: { node: { iri: [OX_LEFT_HANDED, OX_RIGHT_HANDED] } },
   },
-  {
-    name: "BelowAverageFlag",
-    label: "Below-average category flag",
-    description: "Person -> isCategorizedBy Performance_BelowAverage",
-    template: {
-      where: PERSON_TYPE_FILTER,
-      steps: [{ predicate: GIST_IS_CATEGORIZED_BY }],
-    },
-    queryPath: {
-      start: PERSON_START_SELECTOR,
-      steps: [{ via: GIST_IS_CATEGORIZED_BY }],
-      target: { node: { iri: NM_PERFORMANCE_BELOW_AVERAGE } },
-    },
+  BelowAverageFlag: {
+    start: PERSON_START_SELECTOR,
+    steps: [{ via: iriRef(GIST_IS_CATEGORIZED_BY) }],
+    target: { node: { iri: NM_PERFORMANCE_BELOW_AVERAGE } },
   },
-  {
-    name: "BaselineAge",
-    label: "Baseline age",
-    description: "Person -> hasMagnitude(age) -> numericValue",
-    template: {
-      where: PERSON_TYPE_FILTER,
-      steps: [
-        {
-          predicate: GIST_HAS_MAGNITUDE,
-          where: [{ predicate: GIST_HAS_ASPECT, value: GIST_ASPECT_AGE }],
-        },
-        { predicate: GIST_NUMERIC_VALUE },
-      ],
-    },
-    queryPath: {
-      start: PERSON_START_SELECTOR,
-      steps: [
-        {
-          via: GIST_HAS_MAGNITUDE,
-          where: {
-            predicates: [
-              { predicate: GIST_HAS_ASPECT, some: { node: { iri: GIST_ASPECT_AGE } } },
-            ],
-          },
-        },
-        { via: GIST_NUMERIC_VALUE },
-      ],
-    },
-  },
-  {
-    name: "LoAAge",
-    label: "Age at loss of ambulation",
-    description: "Person -> hasMagnitude(LoA age) -> numericValue",
-    template: {
-      where: PERSON_TYPE_FILTER,
-      steps: [
-        {
-          predicate: GIST_HAS_MAGNITUDE,
-          where: [{ predicate: GIST_HAS_ASPECT, value: NM_ASPECT_AGE_AT_LOSS_OF_AMBULATION }],
-        },
-        { predicate: GIST_NUMERIC_VALUE },
-      ],
-    },
-    queryPath: {
-      start: PERSON_START_SELECTOR,
-      steps: [
-        {
-          via: GIST_HAS_MAGNITUDE,
-          where: {
-            predicates: [
-              {
-                predicate: GIST_HAS_ASPECT,
-                some: { node: { iri: NM_ASPECT_AGE_AT_LOSS_OF_AMBULATION } },
-              },
-            ],
-          },
-        },
-        { via: GIST_NUMERIC_VALUE },
-      ],
-    },
-  },
-  {
-    name: "TotalMFM",
-    label: "Total MFM score",
-    description: "Person -> hasMagnitude(total MFM) -> numericValue",
-    template: {
-      where: PERSON_TYPE_FILTER,
-      steps: [
-        {
-          predicate: GIST_HAS_MAGNITUDE,
-          where: [{ predicate: GIST_HAS_ASPECT, value: NM_ASPECT_MFM32_AGGREGATE_SCORE }],
-        },
-        { predicate: GIST_NUMERIC_VALUE },
-      ],
-    },
-    queryPath: {
-      start: PERSON_START_SELECTOR,
-      steps: [
-        {
-          via: GIST_HAS_MAGNITUDE,
-          where: {
-            predicates: [
-              {
-                predicate: GIST_HAS_ASPECT,
-                some: { node: { iri: NM_ASPECT_MFM32_AGGREGATE_SCORE } },
-              },
-            ],
-          },
-        },
-        { via: GIST_NUMERIC_VALUE },
-      ],
-    },
-  },
-  {
-    name: "KaplanMeierEvent",
-    label: "Kaplan-Meier event indicator",
-    description:
-      "Person <- hasParticipant (KM observation) -> hasMagnitude(event) -> numericValue",
-    template: {
-      where: PERSON_TYPE_FILTER,
-      steps: [
-        {
-          predicate: GIST_HAS_PARTICIPANT,
-          inverse: true,
-          where: [{ predicate: GIST_IS_CATEGORIZED_BY, value: NM_ASSESSMENT_TYPE_KAPLAN_MEIER }],
-        },
-        {
-          predicate: GIST_HAS_MAGNITUDE,
-          where: [{ predicate: GIST_HAS_ASPECT, value: NM_ASPECT_KAPLAN_MEIER_EVENT_INDICATOR }],
-        },
-        { predicate: GIST_NUMERIC_VALUE },
-      ],
-    },
-    queryPath: {
-      start: PERSON_START_SELECTOR,
-      steps: [
-        {
-          via: GIST_HAS_PARTICIPANT,
-          inverse: true,
-          where: {
-            predicates: [
-              {
-                predicate: GIST_IS_CATEGORIZED_BY,
-                some: { node: { iri: NM_ASSESSMENT_TYPE_KAPLAN_MEIER } },
-              },
-            ],
-          },
-        },
-        {
-          via: GIST_HAS_MAGNITUDE,
-          where: {
-            predicates: [
-              {
-                predicate: GIST_HAS_ASPECT,
-                some: { node: { iri: NM_ASPECT_KAPLAN_MEIER_EVENT_INDICATOR } },
-              },
-            ],
-          },
-        },
-        { via: GIST_NUMERIC_VALUE },
-      ],
-    },
-  },
-  {
-    name: "KaplanMeierTime",
-    label: "Kaplan-Meier time to event",
-    description:
-      "Person <- hasParticipant (KM observation) -> hasMagnitude(time) -> numericValue",
-    template: {
-      where: PERSON_TYPE_FILTER,
-      steps: [
-        {
-          predicate: GIST_HAS_PARTICIPANT,
-          inverse: true,
-          where: [{ predicate: GIST_IS_CATEGORIZED_BY, value: NM_ASSESSMENT_TYPE_KAPLAN_MEIER }],
-        },
-        {
-          predicate: GIST_HAS_MAGNITUDE,
-          where: [{ predicate: GIST_HAS_ASPECT, value: NM_ASPECT_KAPLAN_MEIER_TIME_TO_EVENT }],
-        },
-        { predicate: GIST_NUMERIC_VALUE },
-      ],
-    },
-    queryPath: {
-      start: PERSON_START_SELECTOR,
-      steps: [
-        {
-          via: GIST_HAS_PARTICIPANT,
-          inverse: true,
-          where: {
-            predicates: [
-              {
-                predicate: GIST_IS_CATEGORIZED_BY,
-                some: { node: { iri: NM_ASSESSMENT_TYPE_KAPLAN_MEIER } },
-              },
-            ],
-          },
-        },
-        {
-          via: GIST_HAS_MAGNITUDE,
-          where: {
-            predicates: [
-              {
-                predicate: GIST_HAS_ASPECT,
-                some: { node: { iri: NM_ASPECT_KAPLAN_MEIER_TIME_TO_EVENT } },
-              },
-            ],
-          },
-        },
-        { via: GIST_NUMERIC_VALUE },
-      ],
-    },
-  },
-  {
-    name: "MFMVisitTimeFromBaseline",
-    label: "MFM visit time from baseline",
-    description:
-      "Person <- hasParticipant (MFM32 event) -> hasMagnitude(duration) -> numericValue",
-    template: {
-      where: PERSON_TYPE_FILTER,
-      steps: [
-        {
-          predicate: GIST_HAS_PARTICIPANT,
-          inverse: true,
-          where: [{ predicate: GIST_IS_CATEGORIZED_BY, value: NM_ASSESSMENT_TYPE_MFM32 }],
-        },
-        {
-          predicate: GIST_HAS_MAGNITUDE,
-          where: [
-            { predicate: GIST_HAS_ASPECT, value: NM_ASPECT_DURATION_SINCE_STUDY_ENROLLMENT },
+  BaselineAge: {
+    start: PERSON_START_SELECTOR,
+    steps: [
+      {
+        via: iriRef(GIST_HAS_MAGNITUDE),
+        where: {
+          predicates: [
+            { predicate: iriRef(GIST_HAS_ASPECT), some: { node: { iri: GIST_ASPECT_AGE } } },
           ],
         },
-        { predicate: GIST_NUMERIC_VALUE },
-      ],
-    },
-    queryPath: {
-      start: PERSON_START_SELECTOR,
-      steps: [
-        {
-          via: GIST_HAS_PARTICIPANT,
-          inverse: true,
-          where: {
-            predicates: [
-              {
-                predicate: GIST_IS_CATEGORIZED_BY,
-                some: { node: { iri: NM_ASSESSMENT_TYPE_MFM32 } },
-              },
-            ],
-          },
-        },
-        {
-          via: GIST_HAS_MAGNITUDE,
-          where: {
-            predicates: [
-              {
-                predicate: GIST_HAS_ASPECT,
-                some: { node: { iri: NM_ASPECT_DURATION_SINCE_STUDY_ENROLLMENT } },
-              },
-            ],
-          },
-        },
-        { via: GIST_NUMERIC_VALUE },
-      ],
-    },
+      },
+      { via: iriRef(GIST_NUMERIC_VALUE) },
+    ],
   },
-  {
-    name: "MFMVisitScore",
-    label: "MFM visit score",
-    description:
-      "Person <- hasParticipant (MFM32 event) -> produces -> hasMagnitude(score) -> numericValue",
-    template: {
-      where: PERSON_TYPE_FILTER,
-      steps: [
-        {
-          predicate: GIST_HAS_PARTICIPANT,
-          inverse: true,
-          where: [{ predicate: GIST_IS_CATEGORIZED_BY, value: NM_ASSESSMENT_TYPE_MFM32 }],
+  LoAAge: {
+    start: PERSON_START_SELECTOR,
+    steps: [
+      {
+        via: iriRef(GIST_HAS_MAGNITUDE),
+        where: {
+          predicates: [
+            {
+              predicate: iriRef(GIST_HAS_ASPECT),
+              some: { node: { iri: NM_ASPECT_AGE_AT_LOSS_OF_AMBULATION } },
+            },
+          ],
         },
-        { predicate: GIST_PRODUCES },
-        {
-          predicate: GIST_HAS_MAGNITUDE,
-          where: [{ predicate: GIST_HAS_ASPECT, value: NM_ASPECT_MFM32_VISIT_SCORE }],
-        },
-        { predicate: GIST_NUMERIC_VALUE },
-      ],
-    },
-    queryPath: {
-      start: PERSON_START_SELECTOR,
-      steps: [
-        {
-          via: GIST_HAS_PARTICIPANT,
-          inverse: true,
-          where: {
-            predicates: [
-              {
-                predicate: GIST_IS_CATEGORIZED_BY,
-                some: { node: { iri: NM_ASSESSMENT_TYPE_MFM32 } },
-              },
-            ],
-          },
-        },
-        { via: GIST_PRODUCES },
-        {
-          via: GIST_HAS_MAGNITUDE,
-          where: {
-            predicates: [
-              {
-                predicate: GIST_HAS_ASPECT,
-                some: { node: { iri: NM_ASPECT_MFM32_VISIT_SCORE } },
-              },
-            ],
-          },
-        },
-        { via: GIST_NUMERIC_VALUE },
-      ],
-    },
+      },
+      { via: iriRef(GIST_NUMERIC_VALUE) },
+    ],
   },
-];
-
-export const nemalineGraphPathShortcutModule: GraphPathShortcutSchemaModule = {
-  dataSchemaName: "nemaline",
-  shortcuts: nemalineGraphPathShortcuts,
-};
+  TotalMFM: {
+    start: PERSON_START_SELECTOR,
+    steps: [
+      {
+        via: iriRef(GIST_HAS_MAGNITUDE),
+        where: {
+          predicates: [
+            {
+              predicate: iriRef(GIST_HAS_ASPECT),
+              some: { node: { iri: NM_ASPECT_MFM32_AGGREGATE_SCORE } },
+            },
+          ],
+        },
+      },
+      { via: iriRef(GIST_NUMERIC_VALUE) },
+    ],
+  },
+  KaplanMeierEvent: {
+    start: PERSON_START_SELECTOR,
+    steps: [
+      {
+        via: iriRef(GIST_HAS_PARTICIPANT),
+        inverse: true,
+        where: {
+          predicates: [
+            {
+              predicate: iriRef(GIST_IS_CATEGORIZED_BY),
+              some: { node: { iri: NM_ASSESSMENT_TYPE_KAPLAN_MEIER } },
+            },
+          ],
+        },
+      },
+      {
+        via: iriRef(GIST_HAS_MAGNITUDE),
+        where: {
+          predicates: [
+            {
+              predicate: iriRef(GIST_HAS_ASPECT),
+              some: { node: { iri: NM_ASPECT_KAPLAN_MEIER_EVENT_INDICATOR } },
+            },
+          ],
+        },
+      },
+      { via: iriRef(GIST_NUMERIC_VALUE) },
+    ],
+  },
+  KaplanMeierTime: {
+    start: PERSON_START_SELECTOR,
+    steps: [
+      {
+        via: iriRef(GIST_HAS_PARTICIPANT),
+        inverse: true,
+        where: {
+          predicates: [
+            {
+              predicate: iriRef(GIST_IS_CATEGORIZED_BY),
+              some: { node: { iri: NM_ASSESSMENT_TYPE_KAPLAN_MEIER } },
+            },
+          ],
+        },
+      },
+      {
+        via: iriRef(GIST_HAS_MAGNITUDE),
+        where: {
+          predicates: [
+            {
+              predicate: iriRef(GIST_HAS_ASPECT),
+              some: { node: { iri: NM_ASPECT_KAPLAN_MEIER_TIME_TO_EVENT } },
+            },
+          ],
+        },
+      },
+      { via: iriRef(GIST_NUMERIC_VALUE) },
+    ],
+  },
+  MFMVisitTimeFromBaseline: {
+    start: PERSON_START_SELECTOR,
+    steps: [
+      {
+        via: iriRef(GIST_HAS_PARTICIPANT),
+        inverse: true,
+        where: {
+          predicates: [
+            {
+              predicate: iriRef(GIST_IS_CATEGORIZED_BY),
+              some: { node: { iri: NM_ASSESSMENT_TYPE_MFM32 } },
+            },
+          ],
+        },
+      },
+      {
+        via: iriRef(GIST_HAS_MAGNITUDE),
+        where: {
+          predicates: [
+            {
+              predicate: iriRef(GIST_HAS_ASPECT),
+              some: { node: { iri: NM_ASPECT_DURATION_SINCE_STUDY_ENROLLMENT } },
+            },
+          ],
+        },
+      },
+      { via: iriRef(GIST_NUMERIC_VALUE) },
+    ],
+  },
+  MFMVisitScore: {
+    start: PERSON_START_SELECTOR,
+    steps: [
+      {
+        via: iriRef(GIST_HAS_PARTICIPANT),
+        inverse: true,
+        where: {
+          predicates: [
+            {
+              predicate: iriRef(GIST_IS_CATEGORIZED_BY),
+              some: { node: { iri: NM_ASSESSMENT_TYPE_MFM32 } },
+            },
+          ],
+        },
+      },
+      { via: iriRef(GIST_PRODUCES) },
+      {
+        via: iriRef(GIST_HAS_MAGNITUDE),
+        where: {
+          predicates: [
+            {
+              predicate: iriRef(GIST_HAS_ASPECT),
+              some: { node: { iri: NM_ASPECT_MFM32_VISIT_SCORE } },
+            },
+          ],
+        },
+      },
+      { via: iriRef(GIST_NUMERIC_VALUE) },
+    ],
+  },
+} as unknown as GraphPathShortcutMap;

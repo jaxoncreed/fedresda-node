@@ -1,76 +1,100 @@
-import {
-  makeId,
-  type GraphPathForm,
-} from "../resourceViews/statisticAccessRule/types";
 import { getGraphPathShortcutsForDataSchema } from "./registry";
-import type { GraphPathShortcut, GraphPathShortcutTemplate } from "./types";
+import type { GraphNodeFilter, GraphPath } from "@fedresda/types";
+import type { GraphPathShortcut } from "./types";
 
-function normalizeGraphPathForComparison(value: GraphPathForm) {
-  return {
-    where: value.where.map((filter) => ({
-      predicate: filter.predicate.trim(),
-      value: filter.value.trim(),
-    })),
-    steps: value.steps.map((step) => ({
-      predicate: step.predicate.trim(),
-      inverse: Boolean(step.inverse),
-      where: step.where.map((filter) => ({
-        predicate: filter.predicate.trim(),
-        value: filter.value.trim(),
-      })),
-    })),
-  };
+type IriObject = { "@id": string };
+type ComparableWhereFilter = { predicate: string; value: string };
+type ComparableStep = {
+  predicate: string;
+  inverse: boolean;
+  where: ComparableWhereFilter[];
+};
+type ComparableGraphPath = {
+  where: ComparableWhereFilter[];
+  steps: ComparableStep[];
+};
+
+function toCollectionArray<T>(value: T | T[] | Iterable<T> | undefined): T[] {
+  if (value === undefined || value === null) return [];
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string") {
+    return [value as T];
+  }
+  if (typeof value === "object" && Symbol.iterator in (value as object)) {
+    return Array.from(value as Iterable<T>);
+  }
+  return [value as T];
 }
 
-function normalizeTemplateForComparison(value: GraphPathShortcutTemplate) {
+function getIriValue(value: string | IriObject | undefined): string | undefined {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object" && typeof value["@id"] === "string") {
+    return value["@id"];
+  }
+  return undefined;
+}
+
+function getSingleIriValue(nodeFilter: GraphNodeFilter | undefined): string | undefined {
+  const iriValues = toCollectionArray(nodeFilter?.iri);
+  if (iriValues.length !== 1) return undefined;
+  return iriValues[0];
+}
+
+function toComparableFilter(filterValue: unknown): ComparableWhereFilter | null {
+  if (!filterValue || typeof filterValue !== "object") return null;
+  const filter = filterValue as Record<string, unknown>;
+  const iriValue =
+    filter.some && typeof filter.some === "object" && "node" in filter.some
+      ? getSingleIriValue((filter.some as Record<string, unknown>).node as GraphNodeFilter)
+      : undefined;
+  const predicate = getIriValue(filter.predicate as string | IriObject | undefined);
+  if (!iriValue || !predicate) {
+    return null;
+  }
+  return { predicate, value: iriValue };
+}
+
+function toComparableWhereFilters(nodeFilter: GraphNodeFilter | undefined): ComparableWhereFilter[] {
+  return toCollectionArray(nodeFilter?.predicates)
+    .map((filter) => toComparableFilter(filter))
+    .filter((value): value is ComparableWhereFilter => Boolean(value));
+}
+
+function toComparableGraphPath(graphPath: GraphPath): ComparableGraphPath {
   return {
-    where: (value.where ?? []).map((filter) => ({
-      predicate: filter.predicate.trim(),
-      value: filter.value.trim(),
-    })),
-    steps: value.steps.map((step) => ({
-      predicate: step.predicate.trim(),
-      inverse: Boolean(step.inverse),
-      where: (step.where ?? []).map((filter) => ({
-        predicate: filter.predicate.trim(),
-        value: filter.value.trim(),
-      })),
-    })),
+    where: toComparableWhereFilters(graphPath.start),
+    steps: toCollectionArray(graphPath.steps)
+      .map((step): ComparableStep | null => {
+        const predicate = getIriValue(step.via as string | IriObject | undefined);
+        if (!predicate) return null;
+        return {
+          predicate,
+          inverse: Boolean(step.inverse),
+          where: toComparableWhereFilters(step.where as GraphNodeFilter | undefined),
+        };
+      })
+      .filter((value): value is ComparableStep => Boolean(value)),
   };
 }
 
 export function instantiateGraphPathShortcut(
   shortcut: GraphPathShortcut,
-): GraphPathForm {
-  return {
-    where: (shortcut.template.where ?? []).map((filter) => ({
-      id: makeId("where"),
-      predicate: filter.predicate,
-      value: filter.value,
-    })),
-    steps: shortcut.template.steps.map((step) => ({
-      id: makeId("step"),
-      predicate: step.predicate,
-      inverse: Boolean(step.inverse),
-      where: (step.where ?? []).map((filter) => ({
-        id: makeId("where"),
-        predicate: filter.predicate,
-        value: filter.value,
-      })),
-    })),
-  };
+): GraphPath {
+  return shortcut.graphPath;
 }
 
 export function resolveGraphPathShortcut(
   dataSchemaName: string | null | undefined,
-  graphPath: GraphPathForm,
+  graphPath: GraphPath,
 ): GraphPathShortcut | null {
-  const normalizedPath = normalizeGraphPathForComparison(graphPath);
+  const normalizedPath = JSON.stringify(toComparableGraphPath(graphPath));
   const shortcuts = getGraphPathShortcutsForDataSchema(dataSchemaName);
   return (
     shortcuts.find((shortcut) => {
-      const normalizedTemplate = normalizeTemplateForComparison(shortcut.template);
-      return JSON.stringify(normalizedTemplate) === JSON.stringify(normalizedPath);
+      const shortcutPath = JSON.stringify(
+        toComparableGraphPath(shortcut.graphPath),
+      );
+      return shortcutPath === normalizedPath;
     }) ?? null
   );
 }

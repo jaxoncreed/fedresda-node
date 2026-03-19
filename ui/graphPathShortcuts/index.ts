@@ -1,17 +1,12 @@
 export type {
   GraphPathShortcut,
-  GraphPathShortcutSchemaModule,
-  GraphPathShortcutTemplate,
-  GraphPathShortcutTemplateFilter,
-  GraphPathShortcutTemplateStep,
-  QueryGraphNodeFilter,
-  QueryGraphPath,
-  QueryGraphTraversalStep,
-  QueryGraphValueSelector,
+  GraphPathShortcutMap,
+  GraphPathShortcutRegistry,
 } from "./types";
 
 export {
   findGraphPathShortcutByName,
+  getGraphPathShortcutMapForDataSchema,
   getGraphPathShortcutsForDataSchema,
 } from "./registry";
 

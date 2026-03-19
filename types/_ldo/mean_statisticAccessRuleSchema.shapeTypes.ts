@@ -6,7 +6,10 @@ import {
   AllowedPath,
   GraphPath,
   GraphNodeFilter,
+  GraphPredicateFilter,
   GraphTraversalStep,
+  GraphValueSelector,
+  GraphLiteralFilter,
 } from "./mean_statisticAccessRuleSchema.typings";
 
 /**
@@ -54,10 +57,37 @@ export const GraphNodeFilterShapeType: ShapeType<GraphNodeFilter> = {
 };
 
 /**
+ * GraphPredicateFilter ShapeType
+ */
+export const GraphPredicateFilterShapeType: ShapeType<GraphPredicateFilter> = {
+  schema: mean_statisticAccessRuleSchemaSchema,
+  shape: "https://fedresda.setmeld.org/statistics#GraphPredicateFilterShape",
+  context: mean_statisticAccessRuleSchemaContext,
+};
+
+/**
  * GraphTraversalStep ShapeType
  */
 export const GraphTraversalStepShapeType: ShapeType<GraphTraversalStep> = {
   schema: mean_statisticAccessRuleSchemaSchema,
   shape: "https://fedresda.setmeld.org/statistics#GraphTraversalStepShape",
+  context: mean_statisticAccessRuleSchemaContext,
+};
+
+/**
+ * GraphValueSelector ShapeType
+ */
+export const GraphValueSelectorShapeType: ShapeType<GraphValueSelector> = {
+  schema: mean_statisticAccessRuleSchemaSchema,
+  shape: "https://fedresda.setmeld.org/statistics#GraphValueSelectorShape",
+  context: mean_statisticAccessRuleSchemaContext,
+};
+
+/**
+ * GraphLiteralFilter ShapeType
+ */
+export const GraphLiteralFilterShapeType: ShapeType<GraphLiteralFilter> = {
+  schema: mean_statisticAccessRuleSchemaSchema,
+  shape: "https://fedresda.setmeld.org/statistics#GraphLiteralFilterShape",
   context: mean_statisticAccessRuleSchemaContext,
 };

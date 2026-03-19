@@ -1,4 +1,6 @@
 import type { Schema } from "shexj";
+import { set } from "@ldo/ldo";
+import type { GraphPath, GraphTraversalStep } from "@fedresda/types";
 
 // Data schema: describes the RDF structure used by a data document.
 export type DataSchemaJsonTripleConstraint = {
@@ -26,9 +28,9 @@ export type StatisticAccessRuleObjectValue = {
 
 export type StatisticAccessRuleValue =
   | StatisticAccessRuleScalarValue
-  | GraphPathForm
+  | GraphPath
   | StatisticAccessRuleScalarValue[]
-  | GraphPathForm[]
+  | GraphPath[]
   | StatisticAccessRuleObjectValue[];
 
 export type StatisticPolicy = {
@@ -50,45 +52,10 @@ export function makeId(prefix: string): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export type GraphNodeFilterForm = {
-  id: string;
-  predicate: string;
-  value: string;
-};
-
-export type GraphTraversalStepForm = {
-  id: string;
-  predicate: string;
-  inverse: boolean;
-  where: GraphNodeFilterForm[];
-};
-
-export type GraphPathForm = {
-  where: GraphNodeFilterForm[];
-  steps: GraphTraversalStepForm[];
-};
-
-export function createEmptyNodeFilter(): GraphNodeFilterForm {
+export function createEmptyGraphPath(): GraphPath {
   return {
-    id: makeId("where"),
-    predicate: "",
-    value: "",
-  };
-}
-
-export function createEmptyStep(): GraphTraversalStepForm {
-  return {
-    id: makeId("step"),
-    predicate: "",
-    inverse: false,
-    where: [],
-  };
-}
-
-export function createEmptyGraphPath(): GraphPathForm {
-  return {
-    where: [],
-    steps: [],
+    start: {},
+    steps: set<GraphTraversalStep>(),
   };
 }
 

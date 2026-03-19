@@ -52,7 +52,6 @@ export function useStatisticAccessRuleEditorData(
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [statisticAccessRuleSchemas, setStatisticAccessRuleSchemas] =
     useState<StatisticAccessRuleSchemas>(
     {},
@@ -67,7 +66,6 @@ export function useStatisticAccessRuleEditorData(
     let cancelled = false;
     setIsLoading(true);
     setError(null);
-    setSaveMessage(null);
     setInitialSnapshot(null);
     const schemas = getStatisticAccessRuleSchemasByStatisticPlugin();
     setStatisticAccessRuleSchemas(schemas);
@@ -154,7 +152,6 @@ export function useStatisticAccessRuleEditorData(
   const save = async () => {
     if (!statisticAccessRuleUri) return;
     setIsSaving(true);
-    setSaveMessage(null);
     setError(null);
     try {
       const ttl = buildStatisticAccessRuleTurtle(
@@ -196,9 +193,6 @@ export function useStatisticAccessRuleEditorData(
         throw new Error(commitResult.message);
       }
 
-      setSaveMessage(
-        `Saved statistic access rule to ${statisticAccessRuleUri}`,
-      );
       setInitialSnapshot(currentSnapshot);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -212,7 +206,6 @@ export function useStatisticAccessRuleEditorData(
     isLoading,
     isSaving,
     error,
-    saveMessage,
     statisticAccessRuleSchemas,
     dataSchemaName,
     dataSchema,

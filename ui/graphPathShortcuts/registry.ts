@@ -1,34 +1,33 @@
-import { nemalineGraphPathShortcutModule } from "./schemas/nemaline";
-import type { GraphPathShortcut, GraphPathShortcutSchemaModule } from "./types";
+import { nemalineGraphPathShortcuts } from "./schemas/nemaline";
+import type { GraphPathShortcut, GraphPathShortcutMap, GraphPathShortcutRegistry } from "./types";
 
-const modules: GraphPathShortcutSchemaModule[] = [nemalineGraphPathShortcutModule];
+const graphPathShortcutRegistry: GraphPathShortcutRegistry = {
+  nemaline: nemalineGraphPathShortcuts,
+};
 
 function normalizeSchemaName(value: string | null | undefined): string {
   return (value ?? "").trim().toLowerCase();
 }
 
-function createGraphPathShortcutRegistry(): Record<string, GraphPathShortcut[]> {
-  return modules.reduce<Record<string, GraphPathShortcut[]>>((registry, module) => {
-    const key = normalizeSchemaName(module.dataSchemaName);
-    const existing = registry[key] ?? [];
-    registry[key] = [...existing, ...module.shortcuts];
-    return registry;
-  }, {});
+export function getGraphPathShortcutMapForDataSchema(
+  dataSchemaName: string | null | undefined,
+): GraphPathShortcutMap {
+  const normalizedName = normalizeSchemaName(dataSchemaName);
+  return graphPathShortcutRegistry[normalizedName] ?? {};
 }
-
-const graphPathShortcutRegistry = createGraphPathShortcutRegistry();
 
 export function getGraphPathShortcutsForDataSchema(
   dataSchemaName: string | null | undefined,
 ): GraphPathShortcut[] {
-  const normalizedName = normalizeSchemaName(dataSchemaName);
-  return graphPathShortcutRegistry[normalizedName] ?? [];
+  const shortcutMap = getGraphPathShortcutMapForDataSchema(dataSchemaName);
+  return Object.entries(shortcutMap).map(([name, graphPath]) => ({ name, graphPath }));
 }
 
 export function findGraphPathShortcutByName(
   dataSchemaName: string | null | undefined,
   shortcutName: string,
 ): GraphPathShortcut | null {
-  const shortcuts = getGraphPathShortcutsForDataSchema(dataSchemaName);
-  return shortcuts.find((shortcut) => shortcut.name === shortcutName) ?? null;
+  const shortcutMap = getGraphPathShortcutMapForDataSchema(dataSchemaName);
+  const graphPath = shortcutMap[shortcutName];
+  return graphPath ? { name: shortcutName, graphPath } : null;
 }

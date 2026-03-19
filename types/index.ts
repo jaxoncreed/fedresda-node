@@ -17,3 +17,5 @@ export * from "./_ldo/statisticAccessRuleDocument.context";
 export * from "./_ldo/statisticAccessRuleDocument.schema";
 export * from "./_ldo/statisticAccessRuleDocument.shapeTypes";
 export * from "./_ldo/statisticAccessRuleDocument.typings";
+
+export * from "./graphPath";

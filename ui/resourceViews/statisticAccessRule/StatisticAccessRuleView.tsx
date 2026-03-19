@@ -140,7 +140,6 @@ export const StatisticAccessRuleView: FunctionComponent = () => {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <StatisticAccessRuleEditorForm
           error={editor.error}
-          saveMessage={editor.saveMessage}
           dataSchemaName={editor.dataSchemaName}
           statisticAccessRuleSchemas={editor.statisticAccessRuleSchemas}
           statisticPolicies={editor.statisticPolicies}
