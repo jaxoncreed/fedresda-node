@@ -1,6 +1,7 @@
 import type { StatisticPlugin } from "../StatisticPlugin";
 import {
   MeanStatisticAccessRule,
+  MeanStatisticAccessRuleShapeType,
   mean_statisticAccessRuleSchemaSchema,
 } from "@fedresda/types";
 import { graphPathSchema } from "./util/graphPath";
@@ -39,11 +40,14 @@ export const meanPlugin: StatisticPlugin<
   name: "mean",
   route: "mean",
   statisticAccessRuleSchema: mean_statisticAccessRuleSchemaSchema,
+  statisticAccessRuleShapeType: MeanStatisticAccessRuleShapeType,
   querySchema: meanQuerySchema,
-  evaluateStatisticAccessRule(_query, _statisticAccessRule): true | Error {
+  evaluateStatisticAccessRule(query, statisticAccessRule): true | Error {
     // TODO
-    console.log(JSON.stringify(_query));
-    console.log(JSON.stringify(_statisticAccessRule));
+    console.log("Query");
+    console.log(JSON.stringify(query, null, 2));
+    console.log("meanStatisicAccessRule");
+    console.log(JSON.stringify(statisticAccessRule, null, 2));
     return true;
   },
   async performQuery(query, globals): Promise<MeanOutput> {

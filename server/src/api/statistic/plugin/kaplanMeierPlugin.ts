@@ -1,6 +1,7 @@
 import type { StatisticPlugin } from "../StatisticPlugin";
 import {
   KaplanMeierStatisticAccessRule,
+  KaplanMeierStatisticAccessRuleShapeType,
   kaplanMeier_statisticAccessRuleSchemaSchema,
 } from "@fedresda/types";
 import { graphPathSchema } from "./util/graphPath";
@@ -114,6 +115,7 @@ export const kaplanMeierPlugin: StatisticPlugin<
   name: "kaplan-meier",
   route: "kaplan-meier",
   statisticAccessRuleSchema: kaplanMeier_statisticAccessRuleSchemaSchema,
+  statisticAccessRuleShapeType: KaplanMeierStatisticAccessRuleShapeType,
   querySchema: kaplanMeierQuerySchema,
   evaluateStatisticAccessRule(_query, _statisticAccessRule): true | Error {
     // TODO
