@@ -11,3 +11,4 @@ infra/hosts
 infra/secrets.yml
 dev/
 .cursor
+build
