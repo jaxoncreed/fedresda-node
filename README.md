@@ -82,12 +82,25 @@ SetMeld Pod is shipped as a **Docker Compose deployment package**: a single `.ta
 
 2. **On the target server**: copy the tarball (e.g. via `wget` or SCP), then:
    ```bash
-   wget https://github.com/jaxoncreed/fedresda-node/raw/refs/heads/main/build/fedresda-node-deploy-0.0.1-alpha.4.tar.gz
-   tar -xzf fedresda-node-deploy-0.0.1-alpha.4.tar.gz
+   wget https://github.com/SetMeld/fedresda-node/releases/latest/download/fedresda-node-deploy-latest.tar.gz
+   tar -xzf fedresda-node-deploy-latest.tar.gz
    cd fedresda-node-deploy
    ./deploy.sh init
    # Edit config.env (triplestore/proxy/tls modes and related options)
    ./deploy.sh up
+   ```
+
+3. **Automated release on `main`**:
+
+   Pushes to `main` run `.github/workflows/release-deploy-package.yml`, which builds `npm run deploy:package` and publishes release assets:
+
+   - `fedresda-node-deploy-latest.tar.gz` (stable URL for docs/scripts)
+   - `fedresda-node-deploy-<version>.tar.gz` (versioned artifact)
+
+   You can also download a specific version from:
+
+   ```bash
+   wget https://github.com/SetMeld/fedresda-node/releases/download/<tag>/fedresda-node-deploy-<version>.tar.gz
    ```
 
 Full details, SSL options, and proxy examples are in **[deploy/README.md](./deploy/README.md)**.

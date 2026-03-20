@@ -1,52 +1,167 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
-import { Button, Text } from 'linked-data-browser';
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Text,
+} from 'linked-data-browser';
 import { useSolidAuth } from '@ldo/solid-react';
+import type { GraphPath } from '@fedresda/types';
+import {
+  findGraphPathShortcutByName,
+  getGraphPathShortcutsForDataSchema,
+  instantiateGraphPathShortcut,
+  resolveGraphPathShortcut,
+} from '../../graphPathShortcuts';
 
-const DEFAULT_MEAN_QUERY = `{
-  "resourceUri": "http://localhost:3000/admin/FakeData2.ttl",
-  "graphPath": {
-    "start": {
-      "predicates": [
-        {
-          "predicate": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
-          "some": {
-            "node": {
-              "iri": "https://w3id.org/semanticarts/ns/ontology/gist/Person"
-            }
-          }
-        }
-      ]
-    },
-    "steps": [
-      {
-        "via": "https://w3id.org/semanticarts/ns/ontology/gist/hasMagnitude",
-        "where": {
-          "predicates": [
-            {
-              "predicate": "https://w3id.org/semanticarts/ns/ontology/gist/hasAspect",
-              "some": {
-                "node": {
-                  "iri": "https://w3id.org/semanticarts/ns/ontology/gist/Aspect_Age"
-                }
-              }
-            }
-          ]
-        }
+const DEFAULT_RESOURCE_URI = 'http://localhost:3000/admin/FakeData2.ttl';
+const DATA_SCHEMA_NAME = 'nemaline';
+
+type MeanQueryDraft = {
+  resourceUri: string;
+  graphPath: GraphPath;
+};
+
+function isGraphPath(value: unknown): value is GraphPath {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'start' in value &&
+    'steps' in value
+  );
+}
+
+function stringifyQuery(query: MeanQueryDraft): string {
+  return JSON.stringify(query, null, 2);
+}
+
+function parseMeanQueryDraft(queryText: string): {
+  draft: MeanQueryDraft | null;
+  error: string | null;
+} {
+  try {
+    const parsed = JSON.parse(queryText) as {
+      resourceUri?: unknown;
+      graphPath?: unknown;
+    };
+    if (typeof parsed.resourceUri !== 'string') {
+      return { draft: null, error: 'Invalid JSON: "resourceUri" must be a string.' };
+    }
+    if (!isGraphPath(parsed.graphPath)) {
+      return { draft: null, error: 'Invalid JSON: "graphPath" is missing or malformed.' };
+    }
+    return {
+      draft: {
+        resourceUri: parsed.resourceUri,
+        graphPath: parsed.graphPath,
       },
-      {
-        "via": "https://w3id.org/semanticarts/ns/ontology/gist/numericValue"
-      }
-    ]
+      error: null,
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { draft: null, error: `Invalid JSON: ${message}` };
   }
-}`;
+}
+
+function createDefaultMeanQueryDraft(): MeanQueryDraft {
+  const baselineAgeShortcut = findGraphPathShortcutByName(DATA_SCHEMA_NAME, 'BaselineAge');
+  if (baselineAgeShortcut) {
+    return {
+      resourceUri: DEFAULT_RESOURCE_URI,
+      graphPath: instantiateGraphPathShortcut(baselineAgeShortcut),
+    };
+  }
+  return {
+    resourceUri: DEFAULT_RESOURCE_URI,
+    graphPath: {
+      start: {
+        predicates: [
+          {
+            predicate: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type',
+            some: {
+              node: {
+                iri: 'https://w3id.org/semanticarts/ns/ontology/gist/Person',
+              },
+            },
+          },
+        ],
+      },
+      steps: [
+        {
+          via: 'https://w3id.org/semanticarts/ns/ontology/gist/hasMagnitude',
+          where: {
+            predicates: [
+              {
+                predicate: 'https://w3id.org/semanticarts/ns/ontology/gist/hasAspect',
+                some: {
+                  node: {
+                    iri: 'https://w3id.org/semanticarts/ns/ontology/gist/Aspect_Age',
+                  },
+                },
+              },
+            ],
+          },
+        },
+        {
+          via: 'https://w3id.org/semanticarts/ns/ontology/gist/numericValue',
+        },
+      ],
+    } as unknown as GraphPath,
+  };
+}
 
 export function MeanQueryTester() {
   const { fetch } = useSolidAuth();
-  const [meanQueryText, setMeanQueryText] = useState<string>(DEFAULT_MEAN_QUERY);
+  const graphPathShortcuts = useMemo(
+    () => getGraphPathShortcutsForDataSchema(DATA_SCHEMA_NAME),
+    [],
+  );
+  const [lastValidDraft, setLastValidDraft] = useState<MeanQueryDraft>(createDefaultMeanQueryDraft);
+  const [meanQueryText, setMeanQueryText] = useState<string>(() => stringifyQuery(createDefaultMeanQueryDraft()));
+  const [advancedQueryError, setAdvancedQueryError] = useState<string | null>(null);
   const [meanQueryResult, setMeanQueryResult] = useState<string>('');
   const [meanQueryError, setMeanQueryError] = useState<string>('');
   const [isSendingMeanQuery, setIsSendingMeanQuery] = useState<boolean>(false);
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState<boolean>(false);
+
+  const selectedShortcut = resolveGraphPathShortcut(DATA_SCHEMA_NAME, lastValidDraft.graphPath);
+  const shortcutLabel = selectedShortcut ? selectedShortcut.name : 'Choose path';
+
+  const updateDraft = useCallback((nextDraft: MeanQueryDraft) => {
+    setLastValidDraft(nextDraft);
+    setMeanQueryText(stringifyQuery(nextDraft));
+    setAdvancedQueryError(null);
+  }, []);
+
+  const onResourceUriChange = useCallback((nextResourceUri: string) => {
+    updateDraft({
+      ...lastValidDraft,
+      resourceUri: nextResourceUri,
+    });
+  }, [lastValidDraft, updateDraft]);
+
+  const onSelectShortcut = useCallback((shortcutName: string) => {
+    const shortcut = graphPathShortcuts.find((item) => item.name === shortcutName);
+    if (!shortcut) return;
+    updateDraft({
+      ...lastValidDraft,
+      graphPath: instantiateGraphPathShortcut(shortcut),
+    });
+  }, [graphPathShortcuts, lastValidDraft, updateDraft]);
+
+  const onAdvancedJsonChange = useCallback((nextText: string) => {
+    setMeanQueryText(nextText);
+    const parsed = parseMeanQueryDraft(nextText);
+    if (parsed.draft) {
+      setLastValidDraft(parsed.draft);
+      setAdvancedQueryError(null);
+    } else {
+      setAdvancedQueryError(parsed.error);
+    }
+  }, []);
 
   const sendMeanQuery = useCallback(async () => {
     if (isSendingMeanQuery) return;
@@ -107,17 +222,65 @@ export function MeanQueryTester() {
         Mean Query Tester
       </Text>
       <Text style={styles.subtitle}>
-        Enter JSON to send an authenticated request to `/.api/stat/mean`.
+        Select a nemaline graph path shortcut and data resource URI, then send an authenticated request to
+        {' '}`/.api/stat/mean`.
       </Text>
-      <TextInput
-        value={meanQueryText}
-        onChangeText={setMeanQueryText}
-        multiline
-        autoCapitalize="none"
-        autoCorrect={false}
-        spellCheck={false}
-        style={styles.input}
-      />
+      <View style={styles.field}>
+        <Text style={styles.fieldLabel}>Resource URI</Text>
+        <TextInput
+          value={lastValidDraft.resourceUri}
+          onChangeText={onResourceUriChange}
+          autoCapitalize="none"
+          autoCorrect={false}
+          spellCheck={false}
+          style={styles.resourceInput}
+        />
+      </View>
+      <View style={styles.field}>
+        <Text style={styles.fieldLabel}>Graph path shortcut</Text>
+        <View style={styles.shortcutRow}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button text={shortcutLabel} variant="secondary" style={styles.shortcutTrigger} />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent style={styles.dropdownContent}>
+              {graphPathShortcuts.map((shortcut) => (
+                <DropdownMenuItem
+                  key={shortcut.name}
+                  onPress={() => onSelectShortcut(shortcut.name)}
+                >
+                  <Text>{shortcut.name}</Text>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+            text={isAdvancedOpen ? 'Hide advanced' : 'Advanced'}
+            variant="secondary"
+            style={styles.advancedButton}
+            onPress={() => setIsAdvancedOpen((prev) => !prev)}
+          />
+        </View>
+      </View>
+      {isAdvancedOpen ? (
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Raw query JSON</Text>
+          <TextInput
+            value={meanQueryText}
+            onChangeText={onAdvancedJsonChange}
+            multiline
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            style={styles.input}
+          />
+        </View>
+      ) : null}
+      {!!advancedQueryError && (
+        <View style={styles.errorBox}>
+          <Text style={styles.codeText}>{advancedQueryError}</Text>
+        </View>
+      )}
       <View style={styles.actions}>
         <Button
           text={isSendingMeanQuery ? 'Sending...' : 'Send'}
@@ -155,6 +318,43 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     color: 'hsl(var(--muted-foreground))',
     fontSize: 13,
+  },
+  field: {
+    marginBottom: 10,
+  },
+  fieldLabel: {
+    marginBottom: 6,
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  resourceInput: {
+    minHeight: 40,
+    borderWidth: 1,
+    borderColor: 'hsl(var(--border))',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: 'hsl(var(--background))',
+    fontSize: 12,
+  },
+  shortcutRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+  },
+  shortcutTrigger: {
+    minWidth: 220,
+    maxWidth: 460,
+  },
+  advancedButton: {
+    minWidth: 120,
+  },
+  dropdownContent: {
+    maxHeight: 320,
+    minWidth: 280,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
   },
   input: {
     minHeight: 150,
