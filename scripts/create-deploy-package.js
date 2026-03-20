@@ -47,12 +47,16 @@ const entries = [
 ];
 
 const fromRepo = [
-  "package.json",
-  "package-lock.json",
-  "dist",
-  "config",
-  "templates",
-  "node_modules",
+  { src: "package.json", dest: "package.json", required: true },
+  { src: "package-lock.json", dest: "package-lock.json", required: true },
+  // Support both legacy root build output and current monorepo server build output.
+  { src: "server/dist", dest: "dist", required: false },
+  { src: "dist", dest: "dist", required: false },
+  // Support both legacy root config and current server config location.
+  { src: "server/config", dest: "config", required: false },
+  { src: "config", dest: "config", required: false },
+  { src: "templates", dest: "templates", required: true },
+  { src: "node_modules", dest: "node_modules", required: true },
 ];
 
 function copyFile(src, dst) {
@@ -79,8 +83,19 @@ function copyRecursive(src, dst) {
   }
 }
 
+function firstExistingPath(paths) {
+  for (const p of paths) {
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+}
+
 function main() {
-  if (!fs.existsSync(path.join(repoRoot, "dist", "index.js"))) {
+  const serverBuildEntry = firstExistingPath([
+    path.join(repoRoot, "server", "dist", "index.js"),
+    path.join(repoRoot, "dist", "index.js"),
+  ]);
+  if (!serverBuildEntry) {
     console.error("Run 'npm run build' first.");
     process.exit(1);
   }
@@ -99,17 +114,21 @@ function main() {
     }
   }
 
-  for (const name of fromRepo) {
-    const src = path.join(repoRoot, name);
-    const dst = path.join(stageDir, name);
+  const copiedDestinations = new Set();
+  for (const entry of fromRepo) {
+    const src = path.join(repoRoot, entry.src);
+    const dst = path.join(stageDir, entry.dest);
     if (!fs.existsSync(src)) {
-      if (name === "node_modules") {
-        console.error("node_modules not found. Run 'npm install' and 'npm run build'.");
+      if (entry.required) {
+        console.error(`${entry.src} not found. Run 'npm install' and 'npm run build'.`);
         process.exit(1);
       }
       continue;
     }
+    // Skip duplicate destination when fallback paths are both present.
+    if (copiedDestinations.has(entry.dest)) continue;
     copyRecursive(src, dst);
+    copiedDestinations.add(entry.dest);
   }
 
   // Only include ui/dist-server for the app (Dockerfile expects ./ui/dist-server)
